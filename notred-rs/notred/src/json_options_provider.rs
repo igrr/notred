@@ -1,10 +1,10 @@
 use crate::common::{NodeOptionsError, NodeOptionsProvider};
 
-pub struct JsonNodeOptionsProvider {
-    pub data: json::JsonValue,
+pub struct JsonNodeOptionsProvider<'a> {
+    pub data: &'a json::JsonValue,
 }
 
-impl NodeOptionsProvider for JsonNodeOptionsProvider {
+impl NodeOptionsProvider for JsonNodeOptionsProvider<'_> {
     fn get_str(&self, key: &str) -> Result<&str, NodeOptionsError> {
         match self.data[key].as_str() {
             Some(v) => Ok(v),
