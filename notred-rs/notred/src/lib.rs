@@ -80,6 +80,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_append_node_set_options() {
+        let mut node = AppendNode {
+            what_to_append: "".to_string()
+        };
+        assert!(node.set_options("{}").is_ok());
+        assert!(node.set_options("{").is_err());
+        assert!(node.set_options("{\"foo\": 42}").is_ok());
+        assert!(node.set_options("{\"what_to_append\": 42}").is_ok());
+    }
+
+    #[test]
     fn test_stuff() {
         let mut node = (APPEND_NODE_CLASS.constructor)();
         let res1 = (*node).set_options("{\"what_to_append\":\" foo\"}");
