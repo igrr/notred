@@ -1,4 +1,5 @@
 use crate::common::*;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 struct AppendNode {
@@ -9,6 +10,7 @@ struct AppendNode {
 fn make_append_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
+    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let what_to_append = match opt_provider.get_str("what_to_append") {
         Ok(s) => s.to_string(),
@@ -61,6 +63,7 @@ mod test {
             &JsonNodeOptionsProvider {
                 data: &json::object! {"what_to_append": " test"},
             },
+            None
         )
         .unwrap();
         assert_eq!(n.get_name(), "node1");

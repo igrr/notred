@@ -2,6 +2,7 @@ mod common;
 mod json_options_provider;
 mod nodes;
 mod loader;
+mod node_factory;
 
 pub use common::*;
 pub use json_options_provider::*;
