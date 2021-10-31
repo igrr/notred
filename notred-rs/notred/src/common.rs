@@ -72,3 +72,10 @@ pub trait NodeFactory {
     fn create_node(&self, class_name: &str, name: &str, opt_provider: &dyn NodeOptionsProvider) -> Option<Box<dyn Node>>;
 }
 
+#[derive(Debug, Clone)]
+pub struct Connection {
+    pub source: String,
+    pub dest: String,
+    pub source_output_index: usize,
+}
+
