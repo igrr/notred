@@ -8,6 +8,7 @@ use std::thread::JoinHandle;
 struct TickerNode {
     common: NodeCommonData,
     period: Duration,
+    limit: Option<usize>,
     dispatcher: Arc<Mutex<dyn AsyncMessageDispatcher>>,
     thread_handle: Option<JoinHandle<()>>,
     terminate_tx: Option<std::sync::mpsc::SyncSender<()>>
@@ -20,10 +21,12 @@ fn make_ticker_node(
     dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
+    let limit = opt_provider.get_usize("limit").ok();
     let dispatcher = dispatcher.expect("dispatcher must be specified");
     Ok(Box::new(TickerNode {
         common,
         period,
+        limit,
         dispatcher,
         thread_handle: None,
         terminate_tx: None
@@ -53,6 +56,7 @@ impl Node for TickerNode {
         let dispatcher = self.dispatcher.clone();
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let name = self.common.name.clone();
+        let mut limit = self.limit.clone();
         self.terminate_tx = Some(sender);
         self.thread_handle = Some(std::thread::spawn(move || {
             loop {
@@ -61,7 +65,15 @@ impl Node for TickerNode {
                 }
                 let mut r = dispatcher.lock().unwrap();
                 let msg = &Default::default();
-                r.dispatch(msg, name.as_str());
+                r.dispatch(msg, name.as_str(), 0);
+
+                if let Some(mut lim) = limit {
+                    lim -= 1;
+                    limit = Some(lim);
+                    if lim == 0 {
+                        return;
+                    }
+                }
             }
         }));
     }
@@ -89,13 +101,13 @@ mod test {
     }
 
     impl Debug for TestDispatcher {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
             todo!()
         }
     }
 
     impl AsyncMessageDispatcher for TestDispatcher {
-        fn dispatch(&mut self, _msg: &Message, _src_node_name: &str) {
+        fn dispatch(&mut self, _msg: &Message, _src_node_name: &str, _source_output_index: usize) {
             self.count += 1;
         }
     }
