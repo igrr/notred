@@ -1,25 +1,8 @@
 use json;
-use crate::common::*;
-use crate::JsonNodeOptionsProvider;
-use quick_error::quick_error;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum JsonNodeLoaderError {
-        Json(err: json::Error) {
-            from()
-        }
-        NodeOptions(err: NodeOptionsError) {
-            from()
-        }
-        ClassNotFound(classname: String) {
-            display("Class not found: {}", classname)
-        }
-        FieldMissing(field: &'static str) {
-            display("Field missing: {}", field)
-        }
-    }
-}
+use crate::common::*;
+use crate::errors::Error;
+use crate::JsonNodeOptionsProvider;
 
 pub struct JsonNodeLoader {}
 
@@ -31,11 +14,11 @@ impl JsonNodeLoader {
         for e in nodes_array.members() {
             let class_name = match e["class"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(JsonNodeLoaderError::FieldMissing("class")); }
+                None => { return Result::Err(Error::FieldMissing("class")); }
             };
             let name = match e["name"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(JsonNodeLoaderError::FieldMissing("name")); }
+                None => { return Result::Err(Error::FieldMissing("name")); }
             };
             let res = factory.create_node(
                 class_name,
