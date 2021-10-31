@@ -1,13 +1,16 @@
 mod append;
 mod ticker;
+mod capture;
 
 use super::common::NodeClass;
-use append::APPEND_NODE_CLASS;
-use ticker::TICKER_NODE_CLASS;
 use counted_array::counted_array;
+
+/* for tests */
+pub use capture::CaptureNode;
 
 counted_array!(
     pub static NODE_CLASSES: [&NodeClass; _] = [
-        &APPEND_NODE_CLASS,
-        &TICKER_NODE_CLASS
+        &append::APPEND_NODE_CLASS,
+        &ticker::TICKER_NODE_CLASS,
+        &capture::CAPTURE_NODE_CLASS
 ]);
