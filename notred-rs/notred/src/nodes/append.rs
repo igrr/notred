@@ -1,5 +1,6 @@
-use crate::common::*;
 use std::sync::{Arc, Mutex};
+
+use crate::common::*;
 
 #[derive(Debug)]
 struct AppendNode {
@@ -10,7 +11,7 @@ struct AppendNode {
 fn make_append_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
-    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>
+    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let what_to_append = match opt_provider.get_str("what_to_append") {
         Ok(s) => s.to_string(),
@@ -50,9 +51,11 @@ impl Node for AppendNode {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::json_options_provider::JsonNodeOptionsProvider;
     use json;
+
+    use crate::json_options_provider::JsonNodeOptionsProvider;
+
+    use super::*;
 
     #[test]
     fn test_make_append_node() {
@@ -63,17 +66,17 @@ mod test {
             &JsonNodeOptionsProvider {
                 data: &json::object! {"what_to_append": " test"},
             },
-            None
+            None,
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(n.get_name(), "node1");
         assert_eq!(
             n.run(&Message {
                 value: "this is".to_string()
             })
-            .as_message()
-            .unwrap()
-            .value,
+                .as_message()
+                .unwrap()
+                .value,
             "this is test"
         );
     }

@@ -1,6 +1,7 @@
-use crate::common::*;
-use std::sync::{Arc, Mutex};
 use std::any::Any;
+use std::sync::{Arc, Mutex};
+
+use crate::common::*;
 
 #[derive(Debug)]
 pub struct CaptureNode {
@@ -11,7 +12,7 @@ pub struct CaptureNode {
 fn make_capture_node(
     common: NodeCommonData,
     _opt_provider: &dyn NodeOptionsProvider,
-    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>
+    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     Ok(Box::new(CaptureNode {
         common,
@@ -42,7 +43,7 @@ impl Node for CaptureNode {
         NodeFunctionResult::NoResult()
     }
 
-    fn as_any(& self) -> &dyn Any {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }

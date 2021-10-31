@@ -1,8 +1,9 @@
+use std::sync::mpsc::RecvTimeoutError;
+
 use json;
 use quick_error::quick_error;
 
 use crate::common::*;
-use std::sync::mpsc::RecvTimeoutError;
 
 quick_error! {
     #[derive(Debug)]

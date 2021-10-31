@@ -1,8 +1,9 @@
-use crate::common::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 use std::thread::JoinHandle;
+use std::time::Duration;
+
+use crate::common::*;
 
 #[derive(Debug)]
 struct TickerNode {
@@ -11,14 +12,14 @@ struct TickerNode {
     limit: Option<usize>,
     dispatcher: Arc<Mutex<dyn AsyncMessageDispatcher>>,
     thread_handle: Option<JoinHandle<()>>,
-    terminate_tx: Option<std::sync::mpsc::SyncSender<()>>
+    terminate_tx: Option<std::sync::mpsc::SyncSender<()>>,
 }
 
 
 fn make_ticker_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
-    dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>
+    dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
     let limit = opt_provider.get_usize("limit").ok();
@@ -29,7 +30,7 @@ fn make_ticker_node(
         limit,
         dispatcher,
         thread_handle: None,
-        terminate_tx: None
+        terminate_tx: None,
     }))
 }
 
@@ -91,13 +92,16 @@ impl Node for TickerNode {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::json_options_provider::JsonNodeOptionsProvider;
-    use json;
     use std::fmt::{Debug, Formatter};
 
+    use json;
+
+    use crate::json_options_provider::JsonNodeOptionsProvider;
+
+    use super::*;
+
     struct TestDispatcher {
-        pub count: usize
+        pub count: usize,
     }
 
     impl Debug for TestDispatcher {
@@ -123,7 +127,7 @@ mod test {
             &JsonNodeOptionsProvider {
                 data: &json::object! {"period": 500},
             },
-            Some(dispatcher.clone())
+            Some(dispatcher.clone()),
         )
             .unwrap();
         assert_eq!(n.get_name(), "node1");

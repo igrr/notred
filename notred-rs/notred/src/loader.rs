@@ -39,7 +39,7 @@ impl JsonNodeLoader {
         for c in connections_array.members() {
             let source = match c["source"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("source"))}
+                None => { return Result::Err(Error::FieldMissing("source")); }
             };
 
             let source_name: &str;
@@ -53,21 +53,20 @@ impl JsonNodeLoader {
                 Some(p) => {
                     source_name = p.0;
                     source_idx = match p.1.parse::<usize>() {
-                        Ok(i) => {i}
+                        Ok(i) => { i }
                         Err(_) => { return Result::Err(Error::ValueError(String::from(source))); }
                     };
                 }
             }
             let dest = match c["dest"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("dest"))}
+                None => { return Result::Err(Error::FieldMissing("dest")); }
             };
-            connections.push(Connection{
+            connections.push(Connection {
                 source: String::from(source_name),
                 dest: String::from(dest),
-                source_output_index: source_idx
+                source_output_index: source_idx,
             })
-
         }
 
         Ok(connections)
