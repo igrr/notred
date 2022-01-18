@@ -9,3 +9,4 @@ edition = "2018"
 json = '*'
 quick-error = "^2.0.0"
 counted-array = "^0.1.2"
+log = '^0.4.14'

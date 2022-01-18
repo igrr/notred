@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "class": "ticker",
+      "name": "ticker1",
+      "period": 50,
+      "limit": 1,
+      "log_outputs": true
+    },
+    {
+      "class": "append",
+      "name": "append1",
+      "what_to_append": " test",
+      "log_outputs": true,
+      "log_inputs": true
+    },
+    {
+      "class": "append",
+      "name": "append2",
+      "what_to_append": " test2",
+      "log_outputs": true,
+      "log_inputs": true
+    },
+    {
+      "class": "capture",
+      "name": "capture1",
+      "log_inputs": true
+    }
+  ],
+  "connections": [
+    {
+      "source": "ticker1",
+      "dest": "append1"
+    },
+    {
+      "source": "ticker1",
+      "dest": "append2"
+    },
+    {
+      "source": "append1",
+      "dest": "append2"
+    },
+    {
+      "source": "append2",
+      "dest": "capture1"
+    }
+  ]
+}
