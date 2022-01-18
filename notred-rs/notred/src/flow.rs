@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use json;
+use log::*;
 
 use crate::common::*;
 use crate::errors::Error;
@@ -10,6 +11,7 @@ use crate::loader::JsonNodeLoader;
 use crate::node_factory::DefaultNodeFactory;
 use crate::node_util::{dest_node_of, node_by_name, node_by_name_mut};
 
+#[derive(Debug)]
 pub struct MessageQueueItem {
     message: Message,
     from_node: String,
@@ -26,7 +28,7 @@ pub struct FlowState {
 }
 
 #[derive(Debug)]
-struct FlowAsyncMessageDispatcher {
+pub struct FlowAsyncMessageDispatcher {
     message_queue_tx: std::sync::mpsc::SyncSender<MessageQueueItem>,
 }
 
@@ -70,11 +72,22 @@ impl FlowState {
     pub fn run_once(&mut self, timeout: Duration) -> Result<(), Error> {
         let mqi = self.message_queue_rx.recv_timeout(timeout)?;
 
+        if let Some(src_node) = node_by_name_mut(&mut self.nodes, mqi.from_node.as_str()) {
+            if src_node.should_log_outputs() {
+                info!("Output from {}:{}: '{}'", mqi.from_node, mqi.output_index, mqi.message)
+            }
+        } else {
+            info!("Output from unknown node {}:{}: '{}'", mqi.from_node, mqi.output_index, mqi.message)
+        }
+
         for c in &self.connections {
             if c.source != mqi.from_node || c.source_output_index != mqi.output_index {
                 continue;
             }
             let dst_node = node_by_name_mut(&mut self.nodes, c.dest.as_str()).unwrap();
+            if dst_node.should_log_inputs() {
+                info!("Input to {}: '{}'", c.dest, mqi.message);
+            }
             let node_res = dst_node.run(&mqi.message);
             if let NodeFunctionResult::Success(msg) = node_res {
                 self.dispatcher.lock().unwrap().dispatch(&msg, c.dest.as_str(), 0);

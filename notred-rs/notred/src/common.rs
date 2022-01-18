@@ -1,10 +1,17 @@
 use core::fmt;
 use std::any::Any;
+use std::fmt::Formatter;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Message {
     pub value: String,
+}
+
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
 }
 
 #[derive(Debug)]
@@ -25,6 +32,8 @@ impl NodeFunctionResult {
 #[derive(Debug, Default)]
 pub struct NodeCommonData {
     pub name: String,
+    pub log_inputs: bool,
+    pub log_outputs: bool
 }
 
 pub trait NodeCommon: fmt::Debug {
@@ -32,6 +41,8 @@ pub trait NodeCommon: fmt::Debug {
     fn get_name(&self) -> &str {
         self.get_common().name.as_str()
     }
+    fn should_log_inputs(&self) -> bool { self.get_common().log_inputs }
+    fn should_log_outputs(&self) -> bool { self.get_common().log_outputs }
 }
 
 pub trait Node: NodeCommon {
