@@ -15,7 +15,7 @@ fn make_append_node(
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let what_to_append = match opt_provider.get_str("what_to_append") {
         Ok(s) => s.to_string(),
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     };
     Ok(Box::new(AppendNode {
         common,
@@ -48,7 +48,6 @@ impl Node for AppendNode {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use json;
@@ -68,15 +67,15 @@ mod test {
             },
             None,
         )
-            .unwrap();
+        .unwrap();
         assert_eq!(n.get_name(), "node1");
         assert_eq!(
             n.run(&Message {
                 value: "this is".to_string()
             })
-                .as_message()
-                .unwrap()
-                .value,
+            .as_message()
+            .unwrap()
+            .value,
             "this is test"
         );
     }

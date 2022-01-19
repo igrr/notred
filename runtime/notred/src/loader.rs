@@ -7,26 +7,30 @@ use crate::JsonNodeOptionsProvider;
 pub struct JsonNodeLoader {}
 
 impl JsonNodeLoader {
-    pub fn load_nodes(&self, factory: &dyn NodeFactory, j: &json::JsonValue) -> Result<Vec<Box<dyn Node>>, Error> {
+    pub fn load_nodes(
+        &self,
+        factory: &dyn NodeFactory,
+        j: &json::JsonValue,
+    ) -> Result<Vec<Box<dyn Node>>, Error> {
         let nodes_array = &j["nodes"];
         let mut nodes: Vec<Box<dyn Node>> = Vec::new();
 
         for e in nodes_array.members() {
             let class_name = match e["class"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("class")); }
+                None => {
+                    return Result::Err(Error::FieldMissing("class"));
+                }
             };
             let name = match e["name"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("name")); }
+                None => {
+                    return Result::Err(Error::FieldMissing("name"));
+                }
             };
-            let res = factory.create_node(
-                class_name,
-                name,
-                &JsonNodeOptionsProvider {
-                    data: &e
-                },
-            ).expect("failed to load node");
+            let res = factory
+                .create_node(class_name, name, &JsonNodeOptionsProvider { data: &e })
+                .expect("failed to load node");
             nodes.push(res);
         }
         Ok(nodes)
@@ -39,7 +43,9 @@ impl JsonNodeLoader {
         for c in connections_array.members() {
             let source = match c["source"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("source")); }
+                None => {
+                    return Result::Err(Error::FieldMissing("source"));
+                }
             };
 
             let source_name: &str;
@@ -53,14 +59,18 @@ impl JsonNodeLoader {
                 Some(p) => {
                     source_name = p.0;
                     source_idx = match p.1.parse::<usize>() {
-                        Ok(i) => { i }
-                        Err(_) => { return Result::Err(Error::ValueError(String::from(source))); }
+                        Ok(i) => i,
+                        Err(_) => {
+                            return Result::Err(Error::ValueError(String::from(source)));
+                        }
                     };
                 }
             }
             let dest = match c["dest"].as_str() {
                 Some(n) => n,
-                None => { return Result::Err(Error::FieldMissing("dest")); }
+                None => {
+                    return Result::Err(Error::FieldMissing("dest"));
+                }
             };
             connections.push(Connection {
                 source: String::from(source_name),
@@ -84,11 +94,16 @@ mod test {
         let json_str = "{\"nodes\":[{\"class\": \"append\", \"name\":\"append1\", \"what_to_append\":\" test\"}]}";
         let j = json::parse(json_str).unwrap();
         let jl = JsonNodeLoader {};
-        let factory = DefaultNodeFactory { async_dispatcher: None };
+        let factory = DefaultNodeFactory {
+            async_dispatcher: None,
+        };
         let mut v = jl.load_nodes(&factory, &j).unwrap();
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].get_name(), "append1");
-        assert_eq!(v[0].run(&Default::default()).as_message().unwrap().value, " test");
+        assert_eq!(
+            v[0].run(&Default::default()).as_message().unwrap().value,
+            " test"
+        );
     }
 
     #[test]

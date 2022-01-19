@@ -33,7 +33,7 @@ impl NodeFunctionResult {
 pub struct NodeCommonData {
     pub name: String,
     pub log_inputs: bool,
-    pub log_outputs: bool
+    pub log_outputs: bool,
 }
 
 pub trait NodeCommon: fmt::Debug {
@@ -41,8 +41,12 @@ pub trait NodeCommon: fmt::Debug {
     fn get_name(&self) -> &str {
         self.get_common().name.as_str()
     }
-    fn should_log_inputs(&self) -> bool { self.get_common().log_inputs }
-    fn should_log_outputs(&self) -> bool { self.get_common().log_outputs }
+    fn should_log_inputs(&self) -> bool {
+        self.get_common().log_inputs
+    }
+    fn should_log_outputs(&self) -> bool {
+        self.get_common().log_outputs
+    }
 }
 
 pub trait Node: NodeCommon {
@@ -84,7 +88,12 @@ pub trait AsyncMessageDispatcher: fmt::Debug + Send {
 }
 
 pub trait NodeFactory {
-    fn create_node(&self, class_name: &str, name: &str, opt_provider: &dyn NodeOptionsProvider) -> Option<Box<dyn Node>>;
+    fn create_node(
+        &self,
+        class_name: &str,
+        name: &str,
+        opt_provider: &dyn NodeOptionsProvider,
+    ) -> Option<Box<dyn Node>>;
 }
 
 #[derive(Debug, Clone)]
@@ -93,4 +102,3 @@ pub struct Connection {
     pub dest: String,
     pub source_output_index: usize,
 }
-

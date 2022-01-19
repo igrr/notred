@@ -18,7 +18,6 @@ pub struct MessageQueueItem {
     output_index: usize,
 }
 
-
 #[derive(Debug)]
 pub struct FlowState {
     nodes: Vec<Box<dyn Node>>,
@@ -34,24 +33,30 @@ pub struct FlowAsyncMessageDispatcher {
 
 impl AsyncMessageDispatcher for FlowAsyncMessageDispatcher {
     fn dispatch(&mut self, message: &Message, from_node: &str, source_output_index: usize) {
-        self.message_queue_tx.send(MessageQueueItem {
-            message: message.clone(),
-            from_node: from_node.to_string(),
-            output_index: source_output_index,
-        }).unwrap();
+        self.message_queue_tx
+            .send(MessageQueueItem {
+                message: message.clone(),
+                from_node: from_node.to_string(),
+                output_index: source_output_index,
+            })
+            .unwrap();
     }
 }
 
 impl FlowState {
     pub fn from_json(json: &json::JsonValue) -> Result<FlowState, Error> {
-        let (sender, receiver): (std::sync::mpsc::SyncSender<MessageQueueItem>, std::sync::mpsc::Receiver<MessageQueueItem>)
-            = std::sync::mpsc::sync_channel(10); // FIXME
+        let (sender, receiver): (
+            std::sync::mpsc::SyncSender<MessageQueueItem>,
+            std::sync::mpsc::Receiver<MessageQueueItem>,
+        ) = std::sync::mpsc::sync_channel(10); // FIXME
         let dispatcher = Arc::new(Mutex::new(FlowAsyncMessageDispatcher {
-            message_queue_tx: sender
+            message_queue_tx: sender,
         }));
 
         let jl = JsonNodeLoader {};
-        let factory = DefaultNodeFactory { async_dispatcher: Some(dispatcher.clone()) };
+        let factory = DefaultNodeFactory {
+            async_dispatcher: Some(dispatcher.clone()),
+        };
         let nodes = jl.load_nodes(&factory, json)?;
         let connections = jl.load_connections(&json)?;
         check_flow(&nodes, &connections)?;
@@ -64,8 +69,16 @@ impl FlowState {
         })
     }
 
-    pub fn send(&mut self, message: &Message, from_node: &str, output_index: usize) -> Result<(), Error> {
-        self.dispatcher.lock().unwrap().dispatch(message, from_node, output_index);
+    pub fn send(
+        &mut self,
+        message: &Message,
+        from_node: &str,
+        output_index: usize,
+    ) -> Result<(), Error> {
+        self.dispatcher
+            .lock()
+            .unwrap()
+            .dispatch(message, from_node, output_index);
         Result::Ok(())
     }
 
@@ -74,10 +87,16 @@ impl FlowState {
 
         if let Some(src_node) = node_by_name_mut(&mut self.nodes, mqi.from_node.as_str()) {
             if src_node.should_log_outputs() {
-                info!("Output from {}:{}: '{}'", mqi.from_node, mqi.output_index, mqi.message)
+                info!(
+                    "Output from {}:{}: '{}'",
+                    mqi.from_node, mqi.output_index, mqi.message
+                )
             }
         } else {
-            info!("Output from unknown node {}:{}: '{}'", mqi.from_node, mqi.output_index, mqi.message)
+            info!(
+                "Output from unknown node {}:{}: '{}'",
+                mqi.from_node, mqi.output_index, mqi.message
+            )
         }
 
         for c in &self.connections {
@@ -90,7 +109,10 @@ impl FlowState {
             }
             let node_res = dst_node.run(&mqi.message);
             if let NodeFunctionResult::Success(msg) = node_res {
-                self.dispatcher.lock().unwrap().dispatch(&msg, c.dest.as_str(), 0);
+                self.dispatcher
+                    .lock()
+                    .unwrap()
+                    .dispatch(&msg, c.dest.as_str(), 0);
             }
         }
         Ok(())
@@ -147,10 +169,19 @@ mod test {
             res.unwrap();
         }
 
-        let capture_node = flow.get_node_by_name("capture1").unwrap().as_any().downcast_ref::<CaptureNode>().unwrap();
+        let capture_node = flow
+            .get_node_by_name("capture1")
+            .unwrap()
+            .as_any()
+            .downcast_ref::<CaptureNode>()
+            .unwrap();
         let msgs = capture_node.get_captured_messages();
         assert_eq!(msgs.len(), 2);
-        assert!(msgs.contains(&Message { value: " test2".to_string() }));
-        assert!(msgs.contains(&Message { value: " test test2".to_string() }));
+        assert!(msgs.contains(&Message {
+            value: " test2".to_string()
+        }));
+        assert!(msgs.contains(&Message {
+            value: " test test2".to_string()
+        }));
     }
 }

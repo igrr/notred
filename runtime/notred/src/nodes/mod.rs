@@ -4,8 +4,8 @@ use counted_array::counted_array;
 use super::common::NodeClass;
 
 mod append;
-mod ticker;
 mod capture;
+mod ticker;
 
 /* for tests */
 counted_array!(

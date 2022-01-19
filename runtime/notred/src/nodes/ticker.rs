@@ -14,7 +14,6 @@ struct TickerNode {
     terminate_tx: Option<std::sync::mpsc::SyncSender<()>>,
 }
 
-
 fn make_ticker_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
@@ -58,21 +57,19 @@ impl Node for TickerNode {
         let name = self.common.name.clone();
         let mut limit = self.limit.clone();
         self.terminate_tx = Some(sender);
-        self.thread_handle = Some(std::thread::spawn(move || {
-            loop {
-                if receiver.recv_timeout(period).is_ok() {
-                    return;
-                }
-                let mut r = dispatcher.lock().unwrap();
-                let msg = &Default::default();
-                r.dispatch(msg, name.as_str(), 0);
+        self.thread_handle = Some(std::thread::spawn(move || loop {
+            if receiver.recv_timeout(period).is_ok() {
+                return;
+            }
+            let mut r = dispatcher.lock().unwrap();
+            let msg = &Default::default();
+            r.dispatch(msg, name.as_str(), 0);
 
-                if let Some(mut lim) = limit {
-                    lim -= 1;
-                    limit = Some(lim);
-                    if lim == 0 {
-                        return;
-                    }
+            if let Some(mut lim) = limit {
+                lim -= 1;
+                limit = Some(lim);
+                if lim == 0 {
+                    return;
                 }
             }
         }));
@@ -87,7 +84,6 @@ impl Node for TickerNode {
         self.thread_handle.take().unwrap().join().unwrap();
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -115,7 +111,6 @@ mod test {
         }
     }
 
-
     #[test]
     fn test_make_ticker_node() {
         let dispatcher = Arc::new(Mutex::new(TestDispatcher { count: 0 }));
@@ -128,7 +123,7 @@ mod test {
             },
             Some(dispatcher.clone()),
         )
-            .unwrap();
+        .unwrap();
         assert_eq!(n.get_name(), "node1");
         n.create();
         thread::sleep(Duration::from_millis(1200));
@@ -136,4 +131,3 @@ mod test {
         assert_eq!(dispatcher.lock().unwrap().count, 2);
     }
 }
-
