@@ -59,9 +59,7 @@ mod test {
     #[test]
     fn test_make_append_node() {
         let mut n = make_append_node(
-            NodeCommonData {
-                name: "node1".to_string(),
-            },
+            NodeCommonData::from_name("node1"),
             &JsonNodeOptionsProvider {
                 data: &json::object! {"what_to_append": " test"},
             },

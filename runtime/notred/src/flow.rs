@@ -9,7 +9,7 @@ use crate::errors::Error;
 use crate::flow_checker::check_flow;
 use crate::loader::JsonNodeLoader;
 use crate::node_factory::DefaultNodeFactory;
-use crate::node_util::{dest_node_of, node_by_name, node_by_name_mut};
+use crate::node_util::{node_by_name, node_by_name_mut};
 
 #[derive(Debug)]
 pub struct MessageQueueItem {

@@ -88,6 +88,7 @@ impl Node for TickerNode {
 #[cfg(test)]
 mod test {
     use std::fmt::{Debug, Formatter};
+    use std::thread;
 
     use json;
 
@@ -115,9 +116,7 @@ mod test {
     fn test_make_ticker_node() {
         let dispatcher = Arc::new(Mutex::new(TestDispatcher { count: 0 }));
         let mut n = make_ticker_node(
-            NodeCommonData {
-                name: "node1".to_string(),
-            },
+            NodeCommonData::from_name("node1"),
             &JsonNodeOptionsProvider {
                 data: &json::object! {"period": 500},
             },

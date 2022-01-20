@@ -36,6 +36,16 @@ pub struct NodeCommonData {
     pub log_outputs: bool,
 }
 
+impl NodeCommonData {
+    pub fn from_name(name: &str) -> NodeCommonData {
+        NodeCommonData {
+            name: name.to_string(),
+            log_inputs: false,
+            log_outputs: false
+        }
+    }
+}
+
 pub trait NodeCommon: fmt::Debug {
     fn get_common(&self) -> &NodeCommonData;
     fn get_name(&self) -> &str {
