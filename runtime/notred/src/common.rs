@@ -41,7 +41,7 @@ impl NodeCommonData {
         NodeCommonData {
             name: name.to_string(),
             log_inputs: false,
-            log_outputs: false
+            log_outputs: false,
         }
     }
 }
