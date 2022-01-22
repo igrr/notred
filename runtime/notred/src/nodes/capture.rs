@@ -27,13 +27,11 @@ pub static CAPTURE_NODE_CLASS: NodeClass = NodeClass {
     num_outputs: 0,
 };
 
-impl NodeCommon for CaptureNode {
+impl Node for CaptureNode {
     fn get_common(&self) -> &NodeCommonData {
         &self.common
     }
-}
 
-impl Node for CaptureNode {
     fn class(&self) -> &NodeClass {
         &CAPTURE_NODE_CLASS
     }

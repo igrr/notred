@@ -46,20 +46,11 @@ impl NodeCommonData {
     }
 }
 
-pub trait NodeCommon: fmt::Debug {
+pub trait Node: fmt::Debug {
     fn get_common(&self) -> &NodeCommonData;
     fn get_name(&self) -> &str {
         self.get_common().name.as_str()
     }
-    fn should_log_inputs(&self) -> bool {
-        self.get_common().log_inputs
-    }
-    fn should_log_outputs(&self) -> bool {
-        self.get_common().log_outputs
-    }
-}
-
-pub trait Node: NodeCommon {
     fn class(&self) -> &NodeClass;
     fn create(&mut self) {}
     fn run(&mut self, _msg: &Message) -> NodeFunctionResult {
@@ -68,6 +59,12 @@ pub trait Node: NodeCommon {
     fn destroy(&mut self) {}
     fn as_any(&self) -> &dyn Any {
         unimplemented!();
+    }
+    fn should_log_inputs(&self) -> bool {
+        self.get_common().log_inputs
+    }
+    fn should_log_outputs(&self) -> bool {
+        self.get_common().log_outputs
     }
 }
 

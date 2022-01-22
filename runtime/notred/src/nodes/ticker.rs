@@ -39,13 +39,11 @@ pub static TICKER_NODE_CLASS: NodeClass = NodeClass {
     num_outputs: 1,
 };
 
-impl NodeCommon for TickerNode {
+impl Node for TickerNode {
     fn get_common(&self) -> &NodeCommonData {
         &self.common
     }
-}
 
-impl Node for TickerNode {
     fn class(&self) -> &NodeClass {
         &TICKER_NODE_CLASS
     }

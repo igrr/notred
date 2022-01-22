@@ -30,13 +30,11 @@ pub static APPEND_NODE_CLASS: NodeClass = NodeClass {
     num_outputs: 1,
 };
 
-impl NodeCommon for AppendNode {
+impl Node for AppendNode {
     fn get_common(&self) -> &NodeCommonData {
         &self.common
     }
-}
 
-impl Node for AppendNode {
     fn class(&self) -> &NodeClass {
         &APPEND_NODE_CLASS
     }
