@@ -17,7 +17,8 @@ fn main() {
 
     let j = json::parse(flow_json.as_str()).expect("Failed to parse flow as JSON");
 
-    let mut flow = notred::FlowState::from_json(&j).expect("Failed to build the flow");
+    let factory = notred::DefaultNodeFactory::default();
+    let mut flow = notred::FlowState::from_json(&j, &factory).expect("Failed to build the flow");
 
     flow.create();
 

@@ -2,6 +2,7 @@ pub use common::*;
 pub use errors::*;
 pub use flow::*;
 pub use json_options_provider::*;
+pub use node_factory::DefaultNodeFactory;
 pub use nodes::*;
 
 mod common;

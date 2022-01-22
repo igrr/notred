@@ -1,4 +1,5 @@
 use json;
+use std::sync::{Arc, Mutex};
 
 use crate::common::*;
 use crate::errors::Error;
@@ -6,11 +7,16 @@ use crate::JsonNodeOptionsProvider;
 
 pub struct JsonNodeLoader {}
 
+// FIXME: figure out how to avoid passing 'factory' and 'async_dispatcher' here.
+// Passing 'create_node' closure didn't work well since the closure captured async_dispatcher
+// before cloning it, so was FnOnce instead of Fn.
+
 impl JsonNodeLoader {
     pub fn load_nodes(
         &self,
-        factory: &dyn NodeFactory,
         j: &json::JsonValue,
+        factory: &dyn NodeFactory,
+        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
     ) -> Result<Vec<Box<dyn Node>>, Error> {
         let nodes_array = &j["nodes"];
         let mut nodes: Vec<Box<dyn Node>> = Vec::new();
@@ -29,7 +35,12 @@ impl JsonNodeLoader {
                 }
             };
             let res = factory
-                .create_node(class_name, name, &JsonNodeOptionsProvider { data: &e })
+                .create_node(
+                    class_name,
+                    name,
+                    &JsonNodeOptionsProvider { data: &e },
+                    async_dispatcher.clone(),
+                )
                 .expect("failed to load node");
             nodes.push(res);
         }
@@ -94,10 +105,8 @@ mod test {
         let json_str = "{\"nodes\":[{\"class\": \"append\", \"name\":\"append1\", \"what_to_append\":\" test\"}]}";
         let j = json::parse(json_str).unwrap();
         let jl = JsonNodeLoader {};
-        let factory = DefaultNodeFactory {
-            async_dispatcher: None,
-        };
-        let mut v = jl.load_nodes(&factory, &j).unwrap();
+        let factory = DefaultNodeFactory::default();
+        let mut v = jl.load_nodes(&j, &factory, None).unwrap();
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].get_name(), "append1");
         assert_eq!(

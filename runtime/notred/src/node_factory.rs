@@ -3,14 +3,22 @@ use std::sync::{Arc, Mutex};
 use crate::common::*;
 use crate::NODE_CLASSES;
 
-#[derive(Debug)]
-pub struct DefaultNodeFactory {
-    pub async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+pub struct DefaultNodeFactory<'a> {
+    pub node_classes: Option<&'a [&'a NodeClass]>,
 }
 
-impl DefaultNodeFactory {
-    fn class_by_name(class_name: &str) -> Option<&NodeClass> {
-        for nc in NODE_CLASSES {
+impl Default for DefaultNodeFactory<'_> {
+    fn default() -> Self {
+        DefaultNodeFactory {
+            node_classes: Some(&NODE_CLASSES),
+        }
+    }
+}
+
+impl DefaultNodeFactory<'_> {
+    fn class_by_name(&self, class_name: &str) -> Option<&NodeClass> {
+        let ncs = self.node_classes.unwrap_or(&NODE_CLASSES);
+        for nc in ncs {
             match nc.name == class_name {
                 true => return Option::Some(nc),
                 false => continue,
@@ -20,14 +28,15 @@ impl DefaultNodeFactory {
     }
 }
 
-impl NodeFactory for DefaultNodeFactory {
+impl NodeFactory for DefaultNodeFactory<'_> {
     fn create_node(
         &self,
         class_name: &str,
         name: &str,
         opt_provider: &dyn NodeOptionsProvider,
+        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
     ) -> Option<Box<dyn Node>> {
-        let class = DefaultNodeFactory::class_by_name(class_name)?;
+        let class = self.class_by_name(class_name)?;
         let log_outputs = opt_provider.get_bool("log_outputs").ok().unwrap_or(false);
         let log_inputs = opt_provider.get_bool("log_inputs").ok().unwrap_or(false);
 
@@ -38,7 +47,7 @@ impl NodeFactory for DefaultNodeFactory {
                 log_outputs,
             },
             opt_provider,
-            self.async_dispatcher.clone(),
+            async_dispatcher.clone(),
         );
         return res.ok();
     }

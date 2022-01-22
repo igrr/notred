@@ -18,6 +18,7 @@ impl fmt::Display for Message {
 pub enum NodeFunctionResult {
     Success(Message),
     NoResult(),
+    // FIXME: should node function be allowed to return an error?
 }
 
 impl NodeFunctionResult {
@@ -51,6 +52,7 @@ pub trait Node: fmt::Debug {
     fn get_name(&self) -> &str {
         self.get_common().name.as_str()
     }
+    // FIXME: should be get_class to be similar to get_common and get_name?
     fn class(&self) -> &NodeClass;
     fn create(&mut self) {}
     fn run(&mut self, _msg: &Message) -> NodeFunctionResult {
@@ -68,6 +70,7 @@ pub trait Node: fmt::Debug {
     }
 }
 
+// FIXME: make this useful ("key not found" error, "value type" error)
 #[derive(Debug, Clone)]
 pub struct NodeOptionsError;
 
@@ -100,6 +103,7 @@ pub trait NodeFactory {
         class_name: &str,
         name: &str,
         opt_provider: &dyn NodeOptionsProvider,
+        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
     ) -> Option<Box<dyn Node>>;
 }
 

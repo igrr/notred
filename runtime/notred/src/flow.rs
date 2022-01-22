@@ -8,7 +8,6 @@ use crate::common::*;
 use crate::errors::Error;
 use crate::flow_checker::check_flow;
 use crate::loader::JsonNodeLoader;
-use crate::node_factory::DefaultNodeFactory;
 use crate::node_util::{node_by_name, node_by_name_mut};
 
 #[derive(Debug)]
@@ -44,7 +43,10 @@ impl AsyncMessageDispatcher for FlowAsyncMessageDispatcher {
 }
 
 impl FlowState {
-    pub fn from_json(json: &json::JsonValue) -> Result<FlowState, Error> {
+    pub fn from_json(
+        json: &json::JsonValue,
+        node_factory: &dyn NodeFactory,
+    ) -> Result<FlowState, Error> {
         let (sender, receiver): (
             std::sync::mpsc::SyncSender<MessageQueueItem>,
             std::sync::mpsc::Receiver<MessageQueueItem>,
@@ -54,10 +56,7 @@ impl FlowState {
         }));
 
         let jl = JsonNodeLoader {};
-        let factory = DefaultNodeFactory {
-            async_dispatcher: Some(dispatcher.clone()),
-        };
-        let nodes = jl.load_nodes(&factory, json)?;
+        let nodes = jl.load_nodes(json, node_factory, Some(dispatcher.clone()))?;
         let connections = jl.load_connections(&json)?;
         check_flow(&nodes, &connections)?;
 
@@ -131,6 +130,7 @@ impl FlowState {
 
 #[cfg(test)]
 mod test {
+    use crate::node_factory;
     use crate::nodes::CaptureNode;
 
     use super::*;
@@ -153,7 +153,8 @@ mod test {
                 ]
             }"#;
         let j = json::parse(json_str).unwrap();
-        let mut flow = FlowState::from_json(&j).unwrap();
+        let factory = node_factory::DefaultNodeFactory::default();
+        let mut flow = FlowState::from_json(&j, &factory).unwrap();
         assert_eq!(flow.connections.len(), 4);
         assert_eq!(flow.nodes.len(), 4);
         flow.create();
