@@ -1,16 +1,21 @@
-pub use capture::CaptureNode;
-use counted_array::counted_array;
-
-use super::common::NodeClass;
-
 mod append;
 mod capture;
 mod ticker;
 
+use counted_array::counted_array;
+
+use super::common::NodeClass;
+
+pub use append::APPEND_NODE_CLASS;
+pub use capture::CAPTURE_NODE_CLASS;
+pub use ticker::TICKER_NODE_CLASS;
+
+pub use capture::CaptureNode;
+
 /* for tests */
 counted_array!(
     pub static NODE_CLASSES: [&NodeClass; _] = [
-        &append::APPEND_NODE_CLASS,
-        &ticker::TICKER_NODE_CLASS,
-        &capture::CAPTURE_NODE_CLASS
+        &APPEND_NODE_CLASS,
+        &TICKER_NODE_CLASS,
+        &CAPTURE_NODE_CLASS
 ]);

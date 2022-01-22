@@ -121,6 +121,10 @@ impl FlowState {
         return node_by_name(&self.nodes, name);
     }
 
+    pub fn get_node_by_name_mut(&mut self, name: &str) -> Option<&mut Box<dyn Node>> {
+        return node_by_name_mut(&mut self.nodes, name);
+    }
+
     pub fn create(&mut self) {
         for n in &mut self.nodes {
             n.create();
