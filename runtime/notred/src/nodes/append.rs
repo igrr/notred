@@ -11,7 +11,7 @@ struct AppendNode {
 fn make_append_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
-    _async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+    _async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let what_to_append = match opt_provider.get_str("what_to_append") {
         Ok(s) => s.to_string(),

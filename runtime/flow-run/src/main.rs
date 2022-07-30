@@ -1,7 +1,7 @@
 mod exit;
 
 use crate::exit::ExitNode;
-use clap::{app_from_crate, arg};
+use clap::arg;
 use env_logger;
 use exit::EXIT_NODE_CLASS;
 use json;

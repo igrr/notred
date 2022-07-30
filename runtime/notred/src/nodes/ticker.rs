@@ -9,7 +9,7 @@ struct TickerNode {
     common: NodeCommonData,
     period: Duration,
     limit: Option<usize>,
-    dispatcher: Arc<Mutex<dyn AsyncMessageDispatcher>>,
+    dispatcher: Arc<Mutex<dyn EventSender>>,
     thread_handle: Option<JoinHandle<()>>,
     terminate_tx: Option<std::sync::mpsc::SyncSender<()>>,
 }
@@ -17,7 +17,7 @@ struct TickerNode {
 fn make_ticker_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
-    dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+    dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
     let limit = opt_provider.get_usize("limit").ok();
@@ -60,8 +60,13 @@ impl Node for TickerNode {
                 return;
             }
             let mut r = dispatcher.lock().unwrap();
-            let msg = &Default::default();
-            r.dispatch(msg, name.as_str(), 0);
+            r.dispatch(Event::MessageFrom(MessageFrom {
+                message: Default::default(),
+                from: NodeIO {
+                    name: name.clone(),
+                    index: 0,
+                },
+            }));
 
             if let Some(mut lim) = limit {
                 lim -= 1;
@@ -104,8 +109,8 @@ mod test {
         }
     }
 
-    impl AsyncMessageDispatcher for TestDispatcher {
-        fn dispatch(&mut self, _msg: &Message, _src_node_name: &str, _source_output_index: usize) {
+    impl EventSender for TestDispatcher {
+        fn dispatch(&mut self, _e: Event) {
             self.count += 1;
         }
     }

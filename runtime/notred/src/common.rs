@@ -4,6 +4,13 @@ use std::fmt::Formatter;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default, Clone, PartialEq)]
+pub struct NodeIO {
+    pub name: String,
+    pub index: usize,
+}
+
+// FIXME: rename to MessageData
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Message {
     pub value: String,
 }
@@ -12,6 +19,19 @@ impl fmt::Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
+}
+
+// FIXME: rename to Message
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct MessageTo {
+    pub message: Message,
+    pub to: NodeIO,
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct MessageFrom {
+    pub message: Message,
+    pub from: NodeIO,
 }
 
 #[derive(Debug)]
@@ -87,14 +107,21 @@ pub struct NodeClass {
     pub constructor: fn(
         common: NodeCommonData,
         opt_provider: &dyn NodeOptionsProvider,
-        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+        async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Result<Box<dyn Node>, NodeOptionsError>,
     pub has_input: bool,
     pub num_outputs: usize,
 }
 
-pub trait AsyncMessageDispatcher: fmt::Debug + Send {
-    fn dispatch(&mut self, msg: &Message, src_node_name: &str, src_output_index: usize);
+pub enum Event {
+    MessageTo(MessageTo),
+    MessageFrom(MessageFrom),
+    Log(String),
+    Terminate(),
+}
+
+pub trait EventSender: fmt::Debug + Send {
+    fn dispatch(&mut self, e: Event);
 }
 
 pub trait NodeFactory {
@@ -103,7 +130,7 @@ pub trait NodeFactory {
         class_name: &str,
         name: &str,
         opt_provider: &dyn NodeOptionsProvider,
-        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Option<Box<dyn Node>>;
 }
 

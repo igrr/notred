@@ -35,6 +35,9 @@ quick_error! {
         Timeout(err: RecvTimeoutError) {
             from()
         }
+        Terminate(reason: String) {
+            display("Execution terminated: {}", reason)
+        }
 
     }
 }

@@ -16,7 +16,7 @@ impl JsonNodeLoader {
         &self,
         j: &json::JsonValue,
         factory: &dyn NodeFactory,
-        async_dispatcher: Option<Arc<Mutex<dyn AsyncMessageDispatcher>>>,
+        async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Result<Vec<Box<dyn Node>>, Error> {
         let nodes_array = &j["nodes"];
         let mut nodes: Vec<Box<dyn Node>> = Vec::new();

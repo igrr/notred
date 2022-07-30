@@ -11,34 +11,21 @@ use crate::loader::JsonNodeLoader;
 use crate::node_util::{node_by_name, node_by_name_mut};
 
 #[derive(Debug)]
-pub struct MessageQueueItem {
-    message: Message,
-    from_node: String,
-    output_index: usize,
-}
-
-#[derive(Debug)]
 pub struct FlowState {
     nodes: Vec<Box<dyn Node>>,
     connections: Vec<Connection>,
-    message_queue_rx: std::sync::mpsc::Receiver<MessageQueueItem>,
+    message_queue_rx: std::sync::mpsc::Receiver<Event>,
     dispatcher: Arc<Mutex<FlowAsyncMessageDispatcher>>,
 }
 
 #[derive(Debug)]
 pub struct FlowAsyncMessageDispatcher {
-    message_queue_tx: std::sync::mpsc::SyncSender<MessageQueueItem>,
+    message_queue_tx: std::sync::mpsc::SyncSender<Event>,
 }
 
-impl AsyncMessageDispatcher for FlowAsyncMessageDispatcher {
-    fn dispatch(&mut self, message: &Message, from_node: &str, source_output_index: usize) {
-        self.message_queue_tx
-            .send(MessageQueueItem {
-                message: message.clone(),
-                from_node: from_node.to_string(),
-                output_index: source_output_index,
-            })
-            .unwrap();
+impl EventSender for FlowAsyncMessageDispatcher {
+    fn dispatch(&mut self, e: Event) {
+        self.message_queue_tx.send(e).unwrap();
     }
 }
 
@@ -48,8 +35,8 @@ impl FlowState {
         node_factory: &dyn NodeFactory,
     ) -> Result<FlowState, Error> {
         let (sender, receiver): (
-            std::sync::mpsc::SyncSender<MessageQueueItem>,
-            std::sync::mpsc::Receiver<MessageQueueItem>,
+            std::sync::mpsc::SyncSender<Event>,
+            std::sync::mpsc::Receiver<Event>,
         ) = std::sync::mpsc::sync_channel(10); // FIXME
         let dispatcher = Arc::new(Mutex::new(FlowAsyncMessageDispatcher {
             message_queue_tx: sender,
@@ -68,52 +55,76 @@ impl FlowState {
         })
     }
 
-    pub fn send(
-        &mut self,
-        message: &Message,
-        from_node: &str,
-        output_index: usize,
-    ) -> Result<(), Error> {
-        self.dispatcher
-            .lock()
-            .unwrap()
-            .dispatch(message, from_node, output_index);
-        Result::Ok(())
+    fn handle_message_to(&mut self, mt: MessageTo) {
+        let dst_node = node_by_name_mut(&mut self.nodes, mt.to.name.as_str()).unwrap();
+        if dst_node.should_log_inputs() {
+            info!("Input to {}:{}: '{}'", mt.to.name, mt.to.index, mt.message);
+        }
+        let node_res = dst_node.run(&mt.message);
+        if let NodeFunctionResult::Success(msg) = node_res {
+            self.dispatcher
+                .lock()
+                .unwrap()
+                .dispatch(Event::MessageFrom(MessageFrom {
+                    from: NodeIO {
+                        name: mt.to.name.clone(),
+                        index: 0,
+                    },
+                    message: msg,
+                }));
+        }
     }
 
-    pub fn run_once(&mut self, timeout: Duration) -> Result<(), Error> {
-        let mqi = self.message_queue_rx.recv_timeout(timeout)?;
-
-        if let Some(src_node) = node_by_name_mut(&mut self.nodes, mqi.from_node.as_str()) {
+    fn handle_message_from(&mut self, mf: MessageFrom) {
+        if let Some(src_node) = node_by_name_mut(&mut self.nodes, mf.from.name.as_str()) {
             if src_node.should_log_outputs() {
                 info!(
                     "Output from {}:{}: '{}'",
-                    mqi.from_node, mqi.output_index, mqi.message
+                    mf.from.name, mf.from.index, mf.message
                 )
             }
-        } else {
-            info!(
-                "Output from unknown node {}:{}: '{}'",
-                mqi.from_node, mqi.output_index, mqi.message
-            )
         }
 
         for c in &self.connections {
-            if c.source != mqi.from_node || c.source_output_index != mqi.output_index {
+            if c.source != mf.from.name || c.source_output_index != mf.from.index {
                 continue;
             }
-            let dst_node = node_by_name_mut(&mut self.nodes, c.dest.as_str()).unwrap();
-            if dst_node.should_log_inputs() {
-                info!("Input to {}: '{}'", c.dest, mqi.message);
-            }
-            let node_res = dst_node.run(&mqi.message);
-            if let NodeFunctionResult::Success(msg) = node_res {
-                self.dispatcher
-                    .lock()
-                    .unwrap()
-                    .dispatch(&msg, c.dest.as_str(), 0);
-            }
+
+            self.dispatcher
+                .lock()
+                .unwrap()
+                .dispatch(Event::MessageTo(MessageTo {
+                    message: mf.message.clone(),
+                    to: NodeIO {
+                        name: c.dest.clone(),
+                        index: 0, // FIXME
+                    },
+                }));
         }
+    }
+
+    fn handle_log(&mut self, _log: String) {
+        unimplemented!();
+    }
+
+    pub fn run_once(&mut self, timeout: Duration) -> Result<(), Error> {
+        let e = self.message_queue_rx.recv_timeout(timeout)?;
+
+        match e {
+            Event::MessageTo(mt) => {
+                self.handle_message_to(mt);
+            }
+            Event::MessageFrom(mf) => {
+                self.handle_message_from(mf);
+            }
+            Event::Log(log) => {
+                self.handle_log(log);
+            }
+            Event::Terminate() => {
+                return Result::Err(Error::Terminate("received termination message".to_string()));
+            }
+        };
+
         Ok(())
     }
 
@@ -163,7 +174,7 @@ mod test {
         assert_eq!(flow.nodes.len(), 4);
         flow.create();
 
-        for _i in 1..5 {
+        for _i in 1..10 {
             let res = flow.run_once(Duration::from_millis(100));
             if let Ok(()) = res {
                 continue;
