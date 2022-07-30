@@ -34,8 +34,8 @@
       "log_inputs": true
     },
     {
-      "class": "exit",
-      "name": "exit",
+      "class": "terminate",
+      "name": "terminate",
       "log_inputs": true
     }
   ],
@@ -58,7 +58,7 @@
     },
     {
       "source": "ticker2",
-      "dest": "exit"
+      "dest": "terminate"
     }
   ]
 }
