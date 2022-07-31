@@ -5,26 +5,26 @@ use crate::node_util::node_by_name;
 pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> Result<(), Error> {
     // Check that each connection's inputs and outputs exist
     for c in connections {
-        match node_by_name(nodes, c.source.as_str()) {
+        match node_by_name(nodes, c.source.name.as_str()) {
             None => {
-                return Result::Err(Error::InvalidNodeName(c.source.clone()));
+                return Result::Err(Error::InvalidNodeName(c.source.name.clone()));
             }
             Some(node) => {
-                if c.source_output_index >= node.class().num_outputs {
-                    return Result::Err(Error::InvalidOutputIndex(
-                        c.source.clone(),
-                        c.source_output_index,
+                if c.source.index >= node.class().num_outputs {
+                    return Result::Err(Error::InvalidPortIndex(
+                        c.source.name.clone(),
+                        c.source.index,
                     ));
                 }
             }
         }
-        match node_by_name(nodes, c.dest.as_str()) {
+        match node_by_name(nodes, c.dest.name.as_str()) {
             None => {
-                return Result::Err(Error::InvalidNodeName(c.source.clone()));
+                return Result::Err(Error::InvalidNodeName(c.dest.name.clone()));
             }
             Some(node) => {
-                if !node.class().has_input {
-                    return Result::Err(Error::InvalidInput(c.source.clone(), c.dest.clone()));
+                if c.dest.index >= node.class().num_inputs {
+                    return Result::Err(Error::InvalidPortIndex(c.dest.name.clone(), c.dest.index));
                 }
             }
         }

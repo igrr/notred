@@ -23,7 +23,7 @@ fn make_capture_node(
 pub static CAPTURE_NODE_CLASS: NodeClass = NodeClass {
     name: "capture",
     constructor: make_capture_node,
-    has_input: true,
+    num_inputs: 1,
     num_outputs: 0,
 };
 
@@ -36,7 +36,7 @@ impl Node for CaptureNode {
         &CAPTURE_NODE_CLASS
     }
 
-    fn run(&mut self, msg: &Message) -> NodeFunctionResult {
+    fn run(&mut self, msg: &Message, _index: usize) -> NodeFunctionResult {
         self.captured_messages.push(msg.clone());
         NodeFunctionResult::NoResult()
     }

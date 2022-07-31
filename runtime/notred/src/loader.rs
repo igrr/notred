@@ -52,45 +52,54 @@ impl JsonNodeLoader {
         let mut connections: Vec<Connection> = Vec::new();
 
         for c in connections_array.members() {
-            let source = match c["source"].as_str() {
+            let source_str = match c["source"].as_str() {
                 Some(n) => n,
                 None => {
                     return Result::Err(Error::FieldMissing("source"));
                 }
             };
 
-            let source_name: &str;
-            let source_idx: usize;
+            let source = JsonNodeLoader::parse_port(source_str)?;
 
-            match source.rsplit_once('.') {
-                None => {
-                    source_name = source;
-                    source_idx = 0;
-                }
-                Some(p) => {
-                    source_name = p.0;
-                    source_idx = match p.1.parse::<usize>() {
-                        Ok(i) => i,
-                        Err(_) => {
-                            return Result::Err(Error::ValueError(String::from(source)));
-                        }
-                    };
-                }
-            }
-            let dest = match c["dest"].as_str() {
+            let dest_str = match c["dest"].as_str() {
                 Some(n) => n,
                 None => {
                     return Result::Err(Error::FieldMissing("dest"));
                 }
             };
-            connections.push(Connection {
-                source: String::from(source_name),
-                dest: String::from(dest),
-                source_output_index: source_idx,
-            })
+
+            let dest = JsonNodeLoader::parse_port(dest_str)?;
+
+            connections.push(Connection { source, dest })
         }
 
         Ok(connections)
+    }
+
+    fn parse_port(str_to_parse: &str) -> Result<NodePort, Error> {
+        let name: &str;
+        let idx: usize;
+
+        match str_to_parse.rsplit_once('.') {
+            None => {
+                name = str_to_parse;
+                idx = 0;
+            }
+            Some(p) => {
+                name = p.0;
+                idx = match p.1.parse::<usize>() {
+                    Ok(i) => i,
+                    Err(_) => {
+                        return Result::Err(Error::ValueError(String::from(str_to_parse)));
+                    }
+                };
+            }
+        };
+
+        Ok(NodePort {
+            name: name.to_string(),
+            index: idx,
+        })
     }
 }
 
@@ -110,7 +119,7 @@ mod test {
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].get_name(), "append1");
         assert_eq!(
-            v[0].run(&Default::default()).as_message().unwrap().value,
+            v[0].run(&Default::default(), 0).as_message().unwrap().value,
             " test"
         );
     }
@@ -122,8 +131,9 @@ mod test {
         let jl = JsonNodeLoader {};
         let v = jl.load_connections(&j).unwrap();
         assert_eq!(v.len(), 1);
-        assert_eq!(v[0].source, "foo1");
-        assert_eq!(v[0].source_output_index, 2);
-        assert_eq!(v[0].dest, "bar1");
+        assert_eq!(v[0].source.name, "foo1");
+        assert_eq!(v[0].source.index, 2);
+        assert_eq!(v[0].dest.name, "bar1");
+        assert_eq!(v[0].dest.index, 0);
     }
 }

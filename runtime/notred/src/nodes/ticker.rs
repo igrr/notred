@@ -35,7 +35,7 @@ fn make_ticker_node(
 pub static TICKER_NODE_CLASS: NodeClass = NodeClass {
     name: "ticker",
     constructor: make_ticker_node,
-    has_input: false,
+    num_inputs: 0,
     num_outputs: 1,
 };
 
@@ -78,7 +78,7 @@ impl Node for TickerNode {
         }));
     }
 
-    fn run(&mut self, _msg: &Message) -> NodeFunctionResult {
+    fn run(&mut self, _msg: &Message, _index: usize) -> NodeFunctionResult {
         panic!("node has no inputs, run shouldn't get called");
     }
 

@@ -26,7 +26,7 @@ fn make_append_node(
 pub static APPEND_NODE_CLASS: NodeClass = NodeClass {
     name: "append",
     constructor: make_append_node,
-    has_input: true,
+    num_inputs: 1,
     num_outputs: 1,
 };
 
@@ -39,7 +39,7 @@ impl Node for AppendNode {
         &APPEND_NODE_CLASS
     }
 
-    fn run(&mut self, msg: &Message) -> NodeFunctionResult {
+    fn run(&mut self, msg: &Message, _index: usize) -> NodeFunctionResult {
         NodeFunctionResult::Success(Message {
             value: msg.value.clone() + &self.what_to_append,
         })
@@ -66,9 +66,12 @@ mod test {
         .unwrap();
         assert_eq!(n.get_name(), "node1");
         assert_eq!(
-            n.run(&Message {
-                value: "this is".to_string()
-            })
+            n.run(
+                &Message {
+                    value: "this is".to_string()
+                },
+                0
+            )
             .as_message()
             .unwrap()
             .value,

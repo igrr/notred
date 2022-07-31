@@ -26,11 +26,8 @@ quick_error! {
         InvalidNodeName(name: String) {
             display("Invalid node name: {}", name)
         }
-        InvalidOutputIndex(name: String, index: usize) {
-            display("Invalid output index {} for node {}", index, name)
-        }
-        InvalidInput(from: String, to: String) {
-            display("Can't connect {} to {}, which has no inputs", from, to)
+        InvalidPortIndex(name: String, index: usize) {
+            display("Invalid port index ({}.{})", name, index)
         }
         Timeout(err: RecvTimeoutError) {
             from()

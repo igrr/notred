@@ -75,7 +75,7 @@ pub trait Node: fmt::Debug {
     // FIXME: should be get_class to be similar to get_common and get_name?
     fn class(&self) -> &NodeClass;
     fn create(&mut self) {}
-    fn run(&mut self, _msg: &Message) -> NodeFunctionResult {
+    fn run(&mut self, _msg: &Message, _input: usize) -> NodeFunctionResult {
         unimplemented!();
     }
     fn destroy(&mut self) {}
@@ -109,7 +109,7 @@ pub struct NodeClass {
         opt_provider: &dyn NodeOptionsProvider,
         event_sender: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Result<Box<dyn Node>, NodeOptionsError>,
-    pub has_input: bool,
+    pub num_inputs: usize,
     pub num_outputs: usize,
 }
 
@@ -136,7 +136,6 @@ pub trait NodeFactory {
 
 #[derive(Debug, Clone)]
 pub struct Connection {
-    pub source: String,
-    pub dest: String,
-    pub source_output_index: usize,
+    pub source: NodePort,
+    pub dest: NodePort,
 }

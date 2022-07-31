@@ -15,13 +15,16 @@ fn make_node(
     event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let event_sender = event_sender.expect("event_sender must be specified");
-    Ok(Box::new(TerminateNode { common, event_sender }))
+    Ok(Box::new(TerminateNode {
+        common,
+        event_sender,
+    }))
 }
 
 pub static TERMINATE_NODE_CLASS: NodeClass = NodeClass {
     name: "terminate",
     constructor: make_node,
-    has_input: true,
+    num_inputs: 1,
     num_outputs: 0,
 };
 
@@ -35,7 +38,10 @@ impl Node for TerminateNode {
     }
 
     fn run(&mut self, _msg: &Message, _input: usize) -> NodeFunctionResult {
-        self.event_sender.lock().unwrap().dispatch(Event::Terminate());
+        self.event_sender
+            .lock()
+            .unwrap()
+            .dispatch(Event::Terminate());
         NodeFunctionResult::NoResult()
     }
 

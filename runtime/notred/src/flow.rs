@@ -60,13 +60,13 @@ impl FlowState {
         if dst_node.should_log_inputs() {
             info!("Input to {}:{}: '{}'", mt.to.name, mt.to.index, mt.message);
         }
-        let node_res = dst_node.run(&mt.message);
+        let node_res = dst_node.run(&mt.message, mt.to.index);
         if let NodeFunctionResult::Success(msg) = node_res {
             self.event_sender
                 .lock()
                 .unwrap()
                 .dispatch(Event::MessageFrom(MessageFrom {
-                    from: NodeIO {
+                    from: NodePort {
                         name: mt.to.name.clone(),
                         index: 0,
                     },
@@ -86,7 +86,7 @@ impl FlowState {
         }
 
         for c in &self.connections {
-            if c.source != mf.from.name || c.source_output_index != mf.from.index {
+            if c.source != mf.from {
                 continue;
             }
 
@@ -95,10 +95,7 @@ impl FlowState {
                 .unwrap()
                 .dispatch(Event::MessageTo(MessageTo {
                     message: mf.message.clone(),
-                    to: NodeIO {
-                        name: c.dest.clone(),
-                        index: 0, // FIXME
-                    },
+                    to: c.dest.clone(),
                 }));
         }
     }
