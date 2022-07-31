@@ -9,7 +9,7 @@ struct TickerNode {
     common: NodeCommonData,
     period: Duration,
     limit: Option<usize>,
-    dispatcher: Arc<Mutex<dyn EventSender>>,
+    event_sender: Arc<Mutex<dyn EventSender>>,
     thread_handle: Option<JoinHandle<()>>,
     terminate_tx: Option<std::sync::mpsc::SyncSender<()>>,
 }
@@ -17,16 +17,16 @@ struct TickerNode {
 fn make_ticker_node(
     common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
-    dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+    event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
     let limit = opt_provider.get_usize("limit").ok();
-    let dispatcher = dispatcher.expect("dispatcher must be specified");
+    let event_sender = event_sender.expect("event_sender must be specified");
     Ok(Box::new(TickerNode {
         common,
         period,
         limit,
-        dispatcher,
+        event_sender,
         thread_handle: None,
         terminate_tx: None,
     }))
@@ -50,7 +50,7 @@ impl Node for TickerNode {
 
     fn create(&mut self) {
         let period = self.period;
-        let dispatcher = self.dispatcher.clone();
+        let event_sender = self.event_sender.clone();
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let name = self.common.name.clone();
         let mut limit = self.limit.clone();
@@ -59,10 +59,10 @@ impl Node for TickerNode {
             if receiver.recv_timeout(period).is_ok() {
                 return;
             }
-            let mut r = dispatcher.lock().unwrap();
+            let mut r = event_sender.lock().unwrap();
             r.dispatch(Event::MessageFrom(MessageFrom {
                 message: Default::default(),
-                from: NodeIO {
+                from: NodePort {
                     name: name.clone(),
                     index: 0,
                 },
@@ -117,19 +117,19 @@ mod test {
 
     #[test]
     fn test_make_ticker_node() {
-        let dispatcher = Arc::new(Mutex::new(TestDispatcher { count: 0 }));
+        let event_sender = Arc::new(Mutex::new(TestDispatcher { count: 0 }));
         let mut n = make_ticker_node(
             NodeCommonData::from_name("node1"),
             &JsonNodeOptionsProvider {
                 data: &json::object! {"period": 500},
             },
-            Some(dispatcher.clone()),
+            Some(event_sender.clone()),
         )
         .unwrap();
         assert_eq!(n.get_name(), "node1");
         n.create();
         thread::sleep(Duration::from_millis(1200));
         n.destroy();
-        assert_eq!(dispatcher.lock().unwrap().count, 2);
+        assert_eq!(event_sender.lock().unwrap().count, 2);
     }
 }

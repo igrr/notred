@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct NodeIO {
+pub struct NodePort {
     pub name: String,
     pub index: usize,
 }
@@ -25,13 +25,13 @@ impl fmt::Display for Message {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct MessageTo {
     pub message: Message,
-    pub to: NodeIO,
+    pub to: NodePort,
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct MessageFrom {
     pub message: Message,
-    pub from: NodeIO,
+    pub from: NodePort,
 }
 
 #[derive(Debug)]
@@ -107,7 +107,7 @@ pub struct NodeClass {
     pub constructor: fn(
         common: NodeCommonData,
         opt_provider: &dyn NodeOptionsProvider,
-        async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Result<Box<dyn Node>, NodeOptionsError>,
     pub has_input: bool,
     pub num_outputs: usize,

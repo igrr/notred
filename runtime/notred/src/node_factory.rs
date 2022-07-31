@@ -34,7 +34,7 @@ impl NodeFactory for DefaultNodeFactory<'_> {
         class_name: &str,
         name: &str,
         opt_provider: &dyn NodeOptionsProvider,
-        async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Option<Box<dyn Node>> {
         let class = self.class_by_name(class_name)?;
         let log_outputs = opt_provider.get_bool("log_outputs").ok().unwrap_or(false);
@@ -47,7 +47,7 @@ impl NodeFactory for DefaultNodeFactory<'_> {
                 log_outputs,
             },
             opt_provider,
-            async_dispatcher.clone(),
+            event_sender.clone(),
         );
         return res.ok();
     }

@@ -12,7 +12,7 @@ pub struct CaptureNode {
 fn make_capture_node(
     common: NodeCommonData,
     _opt_provider: &dyn NodeOptionsProvider,
-    _async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+    _event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     Ok(Box::new(CaptureNode {
         common,

@@ -6,16 +6,16 @@ use crate::common::*;
 #[derive(Debug)]
 pub struct TerminateNode {
     common: NodeCommonData,
-    dispatcher: Arc<Mutex<dyn EventSender>>,
+    event_sender: Arc<Mutex<dyn EventSender>>,
 }
 
 fn make_node(
     common: NodeCommonData,
     _opt_provider: &dyn NodeOptionsProvider,
-    async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+    event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
-    let dispatcher = async_dispatcher.expect("dispatcher must be specified");
-    Ok(Box::new(TerminateNode { common, dispatcher }))
+    let event_sender = event_sender.expect("event_sender must be specified");
+    Ok(Box::new(TerminateNode { common, event_sender }))
 }
 
 pub static TERMINATE_NODE_CLASS: NodeClass = NodeClass {
@@ -34,8 +34,8 @@ impl Node for TerminateNode {
         &TERMINATE_NODE_CLASS
     }
 
-    fn run(&mut self, _msg: &Message) -> NodeFunctionResult {
-        self.dispatcher.lock().unwrap().dispatch(Event::Terminate());
+    fn run(&mut self, _msg: &Message, _input: usize) -> NodeFunctionResult {
+        self.event_sender.lock().unwrap().dispatch(Event::Terminate());
         NodeFunctionResult::NoResult()
     }
 

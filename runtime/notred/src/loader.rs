@@ -7,8 +7,8 @@ use crate::JsonNodeOptionsProvider;
 
 pub struct JsonNodeLoader {}
 
-// FIXME: figure out how to avoid passing 'factory' and 'async_dispatcher' here.
-// Passing 'create_node' closure didn't work well since the closure captured async_dispatcher
+// FIXME: figure out how to avoid passing 'factory' and 'event_sender' here.
+// Passing 'create_node' closure didn't work well since the closure captured event_sender
 // before cloning it, so was FnOnce instead of Fn.
 
 impl JsonNodeLoader {
@@ -16,7 +16,7 @@ impl JsonNodeLoader {
         &self,
         j: &json::JsonValue,
         factory: &dyn NodeFactory,
-        async_dispatcher: Option<Arc<Mutex<dyn EventSender>>>,
+        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
     ) -> Result<Vec<Box<dyn Node>>, Error> {
         let nodes_array = &j["nodes"];
         let mut nodes: Vec<Box<dyn Node>> = Vec::new();
@@ -39,7 +39,7 @@ impl JsonNodeLoader {
                     class_name,
                     name,
                     &JsonNodeOptionsProvider { data: &e },
-                    async_dispatcher.clone(),
+                    event_sender.clone(),
                 )
                 .expect("failed to load node");
             nodes.push(res);

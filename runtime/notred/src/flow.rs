@@ -15,7 +15,7 @@ pub struct FlowState {
     nodes: Vec<Box<dyn Node>>,
     connections: Vec<Connection>,
     message_queue_rx: std::sync::mpsc::Receiver<Event>,
-    dispatcher: Arc<Mutex<FlowAsyncMessageDispatcher>>,
+    event_sender: Arc<Mutex<FlowAsyncMessageDispatcher>>,
 }
 
 #[derive(Debug)]
@@ -38,12 +38,12 @@ impl FlowState {
             std::sync::mpsc::SyncSender<Event>,
             std::sync::mpsc::Receiver<Event>,
         ) = std::sync::mpsc::sync_channel(10); // FIXME
-        let dispatcher = Arc::new(Mutex::new(FlowAsyncMessageDispatcher {
+        let event_sender = Arc::new(Mutex::new(FlowAsyncMessageDispatcher {
             message_queue_tx: sender,
         }));
 
         let jl = JsonNodeLoader {};
-        let nodes = jl.load_nodes(json, node_factory, Some(dispatcher.clone()))?;
+        let nodes = jl.load_nodes(json, node_factory, Some(event_sender.clone()))?;
         let connections = jl.load_connections(&json)?;
         check_flow(&nodes, &connections)?;
 
@@ -51,7 +51,7 @@ impl FlowState {
             nodes,
             connections,
             message_queue_rx: receiver,
-            dispatcher: dispatcher.clone(),
+            event_sender: event_sender.clone(),
         })
     }
 
@@ -62,7 +62,7 @@ impl FlowState {
         }
         let node_res = dst_node.run(&mt.message);
         if let NodeFunctionResult::Success(msg) = node_res {
-            self.dispatcher
+            self.event_sender
                 .lock()
                 .unwrap()
                 .dispatch(Event::MessageFrom(MessageFrom {
@@ -90,7 +90,7 @@ impl FlowState {
                 continue;
             }
 
-            self.dispatcher
+            self.event_sender
                 .lock()
                 .unwrap()
                 .dispatch(Event::MessageTo(MessageTo {
