@@ -1,5 +1,4 @@
 use json;
-use std::sync::{Arc, Mutex};
 
 use crate::common::*;
 use crate::errors::Error;
@@ -12,12 +11,14 @@ pub struct JsonNodeLoader {}
 // before cloning it, so was FnOnce instead of Fn.
 
 impl JsonNodeLoader {
-    pub fn load_nodes(
+    pub fn load_nodes<T>(
         &self,
         j: &json::JsonValue,
-        factory: &dyn NodeFactory,
-        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
-    ) -> Result<Vec<Box<dyn Node>>, Error> {
+        create_node: T,
+    ) -> Result<Vec<Box<dyn Node>>, Error>
+    where
+        T: Fn(&str, &str, &dyn NodeOptionsProvider) -> Option<Box<dyn Node>>,
+    {
         let nodes_array = &j["nodes"];
         let mut nodes: Vec<Box<dyn Node>> = Vec::new();
 
@@ -34,13 +35,7 @@ impl JsonNodeLoader {
                     return Result::Err(Error::FieldMissing("name"));
                 }
             };
-            let res = factory
-                .create_node(
-                    class_name,
-                    name,
-                    &JsonNodeOptionsProvider { data: &e },
-                    event_sender.clone(),
-                )
+            let res = create_node(class_name, name, &JsonNodeOptionsProvider { data: &e })
                 .expect("failed to load node");
             nodes.push(res);
         }
@@ -115,7 +110,13 @@ mod test {
         let j = json::parse(json_str).unwrap();
         let jl = JsonNodeLoader {};
         let factory = DefaultNodeFactory::default();
-        let mut v = jl.load_nodes(&j, &factory, None).unwrap();
+        let create_node = |class_name: &str,
+                           name: &str,
+                           jop: &dyn NodeOptionsProvider|
+         -> Option<Box<dyn Node>> {
+            factory.create_node(class_name, name, jop, None)
+        };
+        let mut v = jl.load_nodes(&j, create_node).unwrap();
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].get_name(), "append1");
         assert_eq!(

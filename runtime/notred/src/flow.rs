@@ -15,7 +15,7 @@ pub struct FlowState {
     nodes: Vec<Box<dyn Node>>,
     connections: Vec<Connection>,
     message_queue_rx: std::sync::mpsc::Receiver<Event>,
-    event_sender: Arc<Mutex<FlowAsyncMessageDispatcher>>,
+    event_sender: Arc<Mutex<dyn EventSender>>,
 }
 
 #[derive(Debug)]
@@ -43,7 +43,14 @@ impl FlowState {
         }));
 
         let jl = JsonNodeLoader {};
-        let nodes = jl.load_nodes(json, node_factory, Some(event_sender.clone()))?;
+        let create_node = |class_name: &str,
+                           name: &str,
+                           jop: &dyn NodeOptionsProvider|
+         -> Option<Box<dyn Node>> {
+            node_factory.create_node(class_name, name, jop, Option::Some((&event_sender).clone()))
+        };
+
+        let nodes = jl.load_nodes(json, create_node)?;
         let connections = jl.load_connections(&json)?;
         check_flow(&nodes, &connections)?;
 
