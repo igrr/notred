@@ -1,5 +1,6 @@
 use crate::conversion;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 
 /// MessageType encodes various types of messages.
 ///
@@ -27,6 +28,24 @@ pub enum MessageType {
     Int,
     Float,
     Dict(DictSchema),
+}
+
+impl Display for MessageType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let res: &str = match &self {
+            MessageType::Text(tct) => match tct {
+                TextContentType::Plain => "text/plain",
+                TextContentType::Json => "text/json",
+            },
+            MessageType::Binary(bct) => match bct {
+                BinaryContentType::Unknown => "binary/unknown",
+            },
+            MessageType::Int => "integer",
+            MessageType::Float => "float",
+            MessageType::Dict(_) => "dictionary",
+        };
+        f.write_str(res)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,6 +88,29 @@ pub struct Dict {
     pub schema: DictSchema,
 }
 
+#[derive(Debug, Clone)]
+pub enum FindConversionError {
+    NoImplicitConversion,
+    ConversionNotImplemented,
+    NoImplicitConversionDetailed(String),
+}
+
+impl Display for FindConversionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let res = match &self {
+            FindConversionError::NoImplicitConversion => "no implicit conversion".to_string(),
+            FindConversionError::ConversionNotImplemented => {
+                "conversion not implemented".to_string()
+            }
+            FindConversionError::NoImplicitConversionDetailed(details) => {
+                format!("no implicit conversion: {details}")
+            }
+        };
+        f.write_str(res.as_str())
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ConversionError {
     // TODO:
     // src: MessageData,
@@ -76,9 +118,15 @@ pub struct ConversionError {
     // err_msg: String,
 }
 
+impl Display for ConversionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Failed to convert")
+    }
+}
+
 pub type ConversionResult = Result<MessageData, ConversionError>;
 pub type MessageConverter = fn(src: &MessageData, dst: &MessageType) -> ConversionResult;
-pub type FindConversionResult = Option<MessageConverter>;
+pub type FindConversionResult = Result<MessageConverter, FindConversionError>;
 
 pub fn find_conversion(src: &MessageType, dst: &MessageType) -> FindConversionResult {
     conversion::find(src, dst)
