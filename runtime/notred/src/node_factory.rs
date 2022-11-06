@@ -45,6 +45,8 @@ impl NodeFactory for DefaultNodeFactory<'_> {
                 name: name.to_string(),
                 log_inputs,
                 log_outputs,
+                input_types: Vec::new(),
+                output_types: Vec::new(),
             },
             opt_provider,
             event_sender.clone(),

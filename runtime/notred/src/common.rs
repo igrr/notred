@@ -1,6 +1,8 @@
+pub use crate::message::{MessageConverter, MessageData};
+use crate::MessageType;
 use core::fmt;
 use std::any::Any;
-use std::fmt::Formatter;
+use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -9,26 +11,16 @@ pub struct NodePort {
     pub index: usize,
 }
 
-// FIXME: rename to MessageData
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Message {
-    pub value: String,
-}
-
-impl fmt::Display for Message {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
+pub type Message = MessageData;
 
 // FIXME: rename to Message
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MessageTo {
     pub message: Message,
     pub to: NodePort,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MessageFrom {
     pub message: Message,
     pub from: NodePort,
@@ -44,8 +36,8 @@ pub enum NodeFunctionResult {
 impl NodeFunctionResult {
     pub fn as_message(&self) -> Option<&Message> {
         match self {
-            NodeFunctionResult::Success(m) => Option::Some(m),
-            NodeFunctionResult::NoResult() => Option::None,
+            NodeFunctionResult::Success(m) => Some(m),
+            NodeFunctionResult::NoResult() => None,
         }
     }
 }
@@ -55,6 +47,8 @@ pub struct NodeCommonData {
     pub name: String,
     pub log_inputs: bool,
     pub log_outputs: bool,
+    pub input_types: Vec<MessageType>,
+    pub output_types: Vec<MessageType>,
 }
 
 impl NodeCommonData {
@@ -63,6 +57,8 @@ impl NodeCommonData {
             name: name.to_string(),
             log_inputs: false,
             log_outputs: false,
+            input_types: Vec::new(),
+            output_types: Vec::new(),
         }
     }
 }
@@ -87,6 +83,26 @@ pub trait Node: fmt::Debug {
     }
     fn should_log_outputs(&self) -> bool {
         self.get_common().log_outputs
+    }
+    fn input_type(&self, index: usize) -> &MessageType {
+        if index >= self.get_common().input_types.len() {
+            panic!(
+                "input #{} of node '{}' doesn't have message type defined",
+                index,
+                self.get_name()
+            )
+        }
+        &self.get_common().input_types[index]
+    }
+    fn output_type(&self, index: usize) -> &MessageType {
+        if index >= self.get_common().output_types.len() {
+            panic!(
+                "output #{} of node '{}' doesn't have message type defined",
+                index,
+                self.get_name()
+            )
+        }
+        &self.get_common().output_types[index]
     }
 }
 
@@ -134,8 +150,19 @@ pub trait NodeFactory {
     ) -> Option<Box<dyn Node>>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Connection {
     pub source: NodePort,
     pub dest: NodePort,
+    pub conversion: Option<MessageConverter>,
+    pub dest_type: Option<MessageType>,
+}
+
+impl Debug for Connection {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("source", &self.source)
+            .field("dest", &self.dest)
+            .finish()
+    }
 }

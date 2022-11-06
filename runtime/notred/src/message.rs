@@ -57,6 +57,42 @@ pub enum MessageData {
     Dict(Dict),
 }
 
+impl MessageData {
+    pub fn as_text(&self) -> Option<&String> {
+        if let MessageData::Text(t) = &self {
+            Some(&t.value)
+        } else {
+            None
+        }
+    }
+    pub fn from_str(text: &str) -> MessageData {
+        MessageData::Text(Text {
+            value: text.to_string(),
+            content_type: TextContentType::Plain,
+        })
+    }
+
+    pub fn from_string(text: &String) -> MessageData {
+        MessageData::Text(Text {
+            value: text.clone(),
+            content_type: TextContentType::Plain,
+        })
+    }
+}
+
+impl Display for MessageData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let res = match &self {
+            MessageData::Text(t) => format!("\"{}\"", t.value),
+            MessageData::Binary(_) => format!("<binary data>"), // FIXME
+            MessageData::Int(i) => format!("{i}"),
+            MessageData::Float(f) => format!("{f}"),
+            MessageData::Dict(_) => format!("<dictionary>"), // FIXME
+        };
+        f.write_str(res.as_str())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TextContentType {
     Plain,

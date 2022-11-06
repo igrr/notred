@@ -6,7 +6,7 @@ use log::*;
 
 use crate::common::*;
 use crate::errors::Error;
-use crate::flow_checker::check_flow;
+use crate::flow_checker::{check_flow, find_conversions};
 use crate::loader::JsonNodeLoader;
 use crate::node_util::{node_by_name, node_by_name_mut};
 
@@ -51,9 +51,9 @@ impl FlowState {
         };
 
         let nodes = jl.load_nodes(json, create_node)?;
-        let connections = jl.load_connections(&json)?;
+        let mut connections = jl.load_connections(&json)?;
         check_flow(&nodes, &connections)?;
-
+        find_conversions(&nodes, &mut connections)?;
         Ok(FlowState {
             nodes,
             connections,
@@ -97,18 +97,27 @@ impl FlowState {
                 continue;
             }
 
-            self.event_sender
-                .lock()
-                .unwrap()
-                .dispatch(Event::MessageTo(MessageTo {
-                    message: mf.message.clone(),
-                    to: c.dest.clone(),
-                }));
+            match c.conversion.unwrap()(&mf.message, &c.dest_type.clone().unwrap()) {
+                Ok(converted_message) => {
+                    self.event_sender
+                        .lock()
+                        .unwrap()
+                        .dispatch(Event::MessageTo(MessageTo {
+                            message: converted_message,
+                            to: c.dest.clone(),
+                        }))
+                }
+                Err(e) => self
+                    .event_sender
+                    .lock()
+                    .unwrap()
+                    .dispatch(Event::Log(e.to_string())),
+            }
         }
     }
 
-    fn handle_log(&mut self, _log: String) {
-        unimplemented!();
+    fn handle_log(&mut self, log_msg: String) {
+        info!("{log_msg}");
     }
 
     pub fn run_once(&mut self, timeout: Duration) -> Result<(), Error> {
@@ -197,11 +206,7 @@ mod test {
             .unwrap();
         let msgs = capture_node.get_captured_messages();
         assert_eq!(msgs.len(), 2);
-        assert!(msgs.contains(&Message {
-            value: " test2".to_string()
-        }));
-        assert!(msgs.contains(&Message {
-            value: " test test2".to_string()
-        }));
+        assert!(msgs.contains(&Message::from_str("0 test2")));
+        assert!(msgs.contains(&Message::from_str("0 test test2")));
     }
 }

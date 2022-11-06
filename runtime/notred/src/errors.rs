@@ -35,6 +35,9 @@ quick_error! {
         Terminate(reason: String) {
             display("Execution terminated: {}", reason)
         }
+        ConversionError(reason: String) {
+            display("Conversion error: {}", reason)
+        }
 
     }
 }

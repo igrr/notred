@@ -3,6 +3,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use crate::common::*;
+use crate::MessageType;
 
 #[derive(Debug)]
 struct TickerNode {
@@ -15,13 +16,14 @@ struct TickerNode {
 }
 
 fn make_ticker_node(
-    common: NodeCommonData,
+    mut common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
     event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
     let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
     let limit = opt_provider.get_usize("limit").ok();
     let event_sender = event_sender.expect("event_sender must be specified");
+    common.output_types.push(MessageType::Int);
     Ok(Box::new(TickerNode {
         common,
         period,
@@ -54,6 +56,7 @@ impl Node for TickerNode {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let name = self.common.name.clone();
         let mut limit = self.limit.clone();
+        let mut count: i64 = 0;
         self.terminate_tx = Some(sender);
         self.thread_handle = Some(std::thread::spawn(move || loop {
             if receiver.recv_timeout(period).is_ok() {
@@ -61,7 +64,7 @@ impl Node for TickerNode {
             }
             let mut r = event_sender.lock().unwrap();
             r.dispatch(Event::MessageFrom(MessageFrom {
-                message: Default::default(),
+                message: MessageData::Int(count),
                 from: NodePort {
                     name: name.clone(),
                     index: 0,
@@ -75,6 +78,7 @@ impl Node for TickerNode {
                     return;
                 }
             }
+            count += 1;
         }));
     }
 

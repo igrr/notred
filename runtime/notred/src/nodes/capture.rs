@@ -2,6 +2,8 @@ use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use crate::common::*;
+use crate::MessageType::Text;
+use crate::TextContentType::Plain;
 
 #[derive(Debug)]
 pub struct CaptureNode {
@@ -10,10 +12,11 @@ pub struct CaptureNode {
 }
 
 fn make_capture_node(
-    common: NodeCommonData,
+    mut common: NodeCommonData,
     _opt_provider: &dyn NodeOptionsProvider,
     _event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
+    common.input_types.push(Text(Plain));
     Ok(Box::new(CaptureNode {
         common,
         captured_messages: Vec::new(),

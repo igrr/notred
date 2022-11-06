@@ -65,7 +65,12 @@ impl JsonNodeLoader {
 
             let dest = JsonNodeLoader::parse_port(dest_str)?;
 
-            connections.push(Connection { source, dest })
+            connections.push(Connection {
+                source,
+                dest,
+                conversion: None,
+                dest_type: None,
+            })
         }
 
         Ok(connections)
@@ -101,6 +106,8 @@ impl JsonNodeLoader {
 #[cfg(test)]
 mod test {
     use crate::node_factory::DefaultNodeFactory;
+    use crate::Text;
+    use crate::TextContentType::Plain;
 
     use super::*;
 
@@ -120,7 +127,17 @@ mod test {
         assert_eq!(v.len(), 1);
         assert_eq!(v[0].get_name(), "append1");
         assert_eq!(
-            v[0].run(&Default::default(), 0).as_message().unwrap().value,
+            v[0].run(
+                &MessageData::Text(Text {
+                    value: String::new(),
+                    content_type: Plain
+                }),
+                0
+            )
+            .as_message()
+            .unwrap()
+            .as_text()
+            .unwrap(),
             " test"
         );
     }

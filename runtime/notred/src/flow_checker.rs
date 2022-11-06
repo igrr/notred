@@ -1,10 +1,11 @@
 use crate::common::*;
 use crate::errors::Error;
+use crate::find_conversion;
 use crate::node_util::node_by_name;
 
 pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> Result<(), Error> {
-    // Check that each connection's inputs and outputs exist
     for c in connections {
+        // Check that each connection's inputs and outputs exist
         match node_by_name(nodes, c.source.name.as_str()) {
             None => {
                 return Result::Err(Error::InvalidNodeName(c.source.name.clone()));
@@ -31,4 +32,29 @@ pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> 
     }
     // TODO: warn if inputs or outputs are not connected?
     return Result::Ok(());
+}
+
+pub fn find_conversions(
+    nodes: &Vec<Box<dyn Node>>,
+    connections: &mut Vec<Connection>,
+) -> Result<(), Error> {
+    for c in connections {
+        let source_node = node_by_name(nodes, c.source.name.as_str()).unwrap();
+        let source_index = c.source.index;
+        let source_message_type = source_node.output_type(source_index);
+
+        let dest_node = node_by_name(nodes, c.dest.name.as_str()).unwrap();
+        let dest_index = c.dest.index;
+        let dest_message_type = dest_node.input_type(dest_index);
+
+        let res = find_conversion(source_message_type, dest_message_type);
+        match res {
+            Ok(conv) => {
+                c.conversion = Some(conv);
+                c.dest_type = Some(dest_message_type.clone())
+            }
+            Err(e) => return Err(Error::ConversionError(e.to_string())),
+        }
+    }
+    return Ok(());
 }

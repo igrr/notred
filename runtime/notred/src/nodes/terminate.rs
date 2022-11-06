@@ -2,6 +2,8 @@ use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use crate::common::*;
+use crate::MessageType::Text;
+use crate::TextContentType::Plain;
 
 #[derive(Debug)]
 pub struct TerminateNode {
@@ -10,10 +12,11 @@ pub struct TerminateNode {
 }
 
 fn make_node(
-    common: NodeCommonData,
+    mut common: NodeCommonData,
     _opt_provider: &dyn NodeOptionsProvider,
     event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
+    common.input_types.push(Text(Plain));
     let event_sender = event_sender.expect("event_sender must be specified");
     Ok(Box::new(TerminateNode {
         common,

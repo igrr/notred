@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::common::*;
+use crate::MessageType;
+use crate::NodeFunctionResult::Success;
+use crate::TextContentType::Plain;
 
 #[derive(Debug)]
 struct AppendNode {
@@ -9,7 +12,7 @@ struct AppendNode {
 }
 
 fn make_append_node(
-    common: NodeCommonData,
+    mut common: NodeCommonData,
     opt_provider: &dyn NodeOptionsProvider,
     _event_sender: Option<Arc<Mutex<dyn EventSender>>>,
 ) -> Result<Box<dyn Node>, NodeOptionsError> {
@@ -17,6 +20,8 @@ fn make_append_node(
         Ok(s) => s.to_string(),
         Err(e) => return Err(e),
     };
+    common.output_types.push(MessageType::Text(Plain));
+    common.input_types.push(MessageType::Text(Plain));
     Ok(Box::new(AppendNode {
         common,
         what_to_append,
@@ -40,9 +45,13 @@ impl Node for AppendNode {
     }
 
     fn run(&mut self, msg: &Message, _index: usize) -> NodeFunctionResult {
-        NodeFunctionResult::Success(Message {
-            value: msg.value.clone() + &self.what_to_append,
-        })
+        if let MessageData::Text(text) = msg {
+            Success(MessageData::from_string(
+                &(text.value.clone() + &self.what_to_append),
+            ))
+        } else {
+            unimplemented!();
+        }
     }
 }
 
@@ -66,15 +75,11 @@ mod test {
         .unwrap();
         assert_eq!(n.get_name(), "node1");
         assert_eq!(
-            n.run(
-                &Message {
-                    value: "this is".to_string()
-                },
-                0
-            )
-            .as_message()
-            .unwrap()
-            .value,
+            n.run(&MessageData::from_str("this is"), 0)
+                .as_message()
+                .unwrap()
+                .as_text()
+                .unwrap(),
             "this is test"
         );
     }
