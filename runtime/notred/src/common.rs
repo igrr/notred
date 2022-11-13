@@ -47,7 +47,7 @@ pub struct NodeCommonData {
     pub name: String,
     pub log_inputs: bool,
     pub log_outputs: bool,
-    pub input_types: Vec<MessageType>,
+    pub input_types: Vec<Option<MessageType>>,
     pub output_types: Vec<MessageType>,
 }
 
@@ -84,7 +84,7 @@ pub trait Node: fmt::Debug {
     fn should_log_outputs(&self) -> bool {
         self.get_common().log_outputs
     }
-    fn input_type(&self, index: usize) -> &MessageType {
+    fn input_type(&self, index: usize) -> &Option<MessageType> {
         if index >= self.get_common().input_types.len() {
             panic!(
                 "input #{} of node '{}' doesn't have message type defined",

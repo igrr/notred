@@ -21,7 +21,7 @@ fn make_append_node(
         Err(e) => return Err(e),
     };
     common.output_types.push(MessageType::Text(Plain));
-    common.input_types.push(MessageType::Text(Plain));
+    common.input_types.push(Some(MessageType::Text(Plain)));
     Ok(Box::new(AppendNode {
         common,
         what_to_append,

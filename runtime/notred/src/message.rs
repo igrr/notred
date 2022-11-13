@@ -167,3 +167,7 @@ pub type FindConversionResult = Result<MessageConverter, FindConversionError>;
 pub fn find_conversion(src: &MessageType, dst: &MessageType) -> FindConversionResult {
     conversion::find(src, dst)
 }
+
+pub fn no_conversion(src: &MessageData, dst: &MessageType) -> ConversionResult {
+    return conversion::identity(src, dst);
+}

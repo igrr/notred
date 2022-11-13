@@ -91,7 +91,7 @@ fn from_dict_to_dict(src: &DictSchema, dst: &DictSchema) -> FindConversionResult
     Ok(dict_to_dict)
 }
 
-fn identity(src: &MessageData, _dst: &MT) -> ConversionResult {
+pub fn identity(src: &MessageData, _dst: &MT) -> ConversionResult {
     Ok(src.clone())
 }
 

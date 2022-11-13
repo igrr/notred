@@ -1,7 +1,7 @@
 use crate::common::*;
 use crate::errors::Error;
-use crate::find_conversion;
 use crate::node_util::node_by_name;
+use crate::{find_conversion, no_conversion};
 
 pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> Result<(), Error> {
     for c in connections {
@@ -45,9 +45,14 @@ pub fn find_conversions(
 
         let dest_node = node_by_name(nodes, c.dest.name.as_str()).unwrap();
         let dest_index = c.dest.index;
-        let dest_message_type = dest_node.input_type(dest_index);
+        if dest_node.input_type(dest_index).is_none() {
+            c.conversion = Some(no_conversion);
+            c.dest_type = Some(source_message_type.clone());
+            continue;
+        }
+        let dest_message_type = dest_node.input_type(dest_index).as_ref().unwrap();
 
-        let res = find_conversion(source_message_type, dest_message_type);
+        let res = find_conversion(&source_message_type, &dest_message_type);
         match res {
             Ok(conv) => {
                 c.conversion = Some(conv);

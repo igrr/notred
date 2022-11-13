@@ -65,7 +65,11 @@ impl FlowState {
     fn handle_message_to(&mut self, mt: MessageTo) {
         let dst_node = node_by_name_mut(&mut self.nodes, mt.to.name.as_str()).unwrap();
         if dst_node.should_log_inputs() {
-            info!("Input to {}:{}: '{}'", mt.to.name, mt.to.index, mt.message);
+            if dst_node.class().num_inputs == 1 {
+                info!("Input to {}: {}", mt.to.name, mt.message);
+            } else {
+                info!("Input to {}[{}]: {}", mt.to.name, mt.to.index, mt.message);
+            }
         }
         let node_res = dst_node.run(&mt.message, mt.to.index);
         if let NodeFunctionResult::Success(msg) = node_res {
@@ -85,10 +89,14 @@ impl FlowState {
     fn handle_message_from(&mut self, mf: MessageFrom) {
         if let Some(src_node) = node_by_name_mut(&mut self.nodes, mf.from.name.as_str()) {
             if src_node.should_log_outputs() {
-                info!(
-                    "Output from {}:{}: '{}'",
-                    mf.from.name, mf.from.index, mf.message
-                )
+                if src_node.class().num_outputs == 1 {
+                    info!("Output from {}: {}", mf.from.name, mf.message)
+                } else {
+                    info!(
+                        "Output from {}[{}]: {}",
+                        mf.from.name, mf.from.index, mf.message
+                    )
+                }
             }
         }
 
