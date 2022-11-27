@@ -8,6 +8,7 @@ use crate::common::*;
 use crate::errors::Error;
 use crate::flow_checker::{check_flow, find_conversions};
 use crate::loader::JsonNodeLoader;
+use crate::node_factory::NodeFactory;
 use crate::node_util::{node_by_name, node_by_name_mut};
 
 #[derive(Debug)]

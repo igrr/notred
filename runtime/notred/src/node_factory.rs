@@ -3,6 +3,16 @@ use std::sync::{Arc, Mutex};
 use crate::common::*;
 use crate::NODE_CLASSES;
 
+pub trait NodeFactory {
+    fn create_node(
+        &self,
+        class_name: &str,
+        name: &str,
+        opt_provider: &dyn NodeOptionsProvider,
+        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
+    ) -> Option<Box<dyn Node>>;
+}
+
 pub struct DefaultNodeFactory<'a> {
     pub node_classes: Option<&'a [&'a NodeClass]>,
 }

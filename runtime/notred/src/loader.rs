@@ -106,6 +106,7 @@ impl JsonNodeLoader {
 #[cfg(test)]
 mod test {
     use crate::node_factory::DefaultNodeFactory;
+    use crate::node_factory::NodeFactory;
     use crate::Text;
     use crate::TextContentType::Plain;
 

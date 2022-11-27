@@ -140,16 +140,6 @@ pub trait EventSender: fmt::Debug + Send {
     fn dispatch(&mut self, e: Event);
 }
 
-pub trait NodeFactory {
-    fn create_node(
-        &self,
-        class_name: &str,
-        name: &str,
-        opt_provider: &dyn NodeOptionsProvider,
-        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
-    ) -> Option<Box<dyn Node>>;
-}
-
 #[derive(Clone)]
 pub struct Connection {
     pub source: NodePort,
