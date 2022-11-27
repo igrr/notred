@@ -1,13 +1,25 @@
+use core::fmt;
+use std::fmt::{Debug, Formatter};
+use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
+
 pub use crate::message::{MessageConverter, MessageData};
 use crate::MessageType;
-use core::fmt;
-use std::any::Any;
-use std::fmt::{Debug, Formatter};
-use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DurationMsec(u64);
+
+impl DurationMsec {
+    pub fn to_duration(&self) -> Duration {
+        Duration::from_millis(self.0)
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct NodePort {
     pub name: String,
+    #[serde(default)]
     pub index: usize,
 }
 
@@ -26,109 +38,6 @@ pub struct MessageFrom {
     pub from: NodePort,
 }
 
-#[derive(Debug)]
-pub enum NodeFunctionResult {
-    Success(Message),
-    NoResult(),
-    // FIXME: should node function be allowed to return an error?
-}
-
-impl NodeFunctionResult {
-    pub fn as_message(&self) -> Option<&Message> {
-        match self {
-            NodeFunctionResult::Success(m) => Some(m),
-            NodeFunctionResult::NoResult() => None,
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct NodeCommonData {
-    pub name: String,
-    pub log_inputs: bool,
-    pub log_outputs: bool,
-    pub input_types: Vec<Option<MessageType>>,
-    pub output_types: Vec<MessageType>,
-}
-
-impl NodeCommonData {
-    pub fn from_name(name: &str) -> NodeCommonData {
-        NodeCommonData {
-            name: name.to_string(),
-            log_inputs: false,
-            log_outputs: false,
-            input_types: Vec::new(),
-            output_types: Vec::new(),
-        }
-    }
-}
-
-pub trait Node: fmt::Debug {
-    fn get_common(&self) -> &NodeCommonData;
-    fn get_name(&self) -> &str {
-        self.get_common().name.as_str()
-    }
-    // FIXME: should be get_class to be similar to get_common and get_name?
-    fn class(&self) -> &NodeClass;
-    fn create(&mut self) {}
-    fn run(&mut self, _msg: &Message, _input: usize) -> NodeFunctionResult {
-        unimplemented!();
-    }
-    fn destroy(&mut self) {}
-    fn as_any(&self) -> &dyn Any {
-        unimplemented!();
-    }
-    fn should_log_inputs(&self) -> bool {
-        self.get_common().log_inputs
-    }
-    fn should_log_outputs(&self) -> bool {
-        self.get_common().log_outputs
-    }
-    fn input_type(&self, index: usize) -> &Option<MessageType> {
-        if index >= self.get_common().input_types.len() {
-            panic!(
-                "input #{} of node '{}' doesn't have message type defined",
-                index,
-                self.get_name()
-            )
-        }
-        &self.get_common().input_types[index]
-    }
-    fn output_type(&self, index: usize) -> &MessageType {
-        if index >= self.get_common().output_types.len() {
-            panic!(
-                "output #{} of node '{}' doesn't have message type defined",
-                index,
-                self.get_name()
-            )
-        }
-        &self.get_common().output_types[index]
-    }
-}
-
-// FIXME: make this useful ("key not found" error, "value type" error)
-#[derive(Debug, Clone)]
-pub struct NodeOptionsError;
-
-pub trait NodeOptionsProvider {
-    fn get_str(&self, key: &str) -> Result<&str, NodeOptionsError>;
-    fn get_bool(&self, key: &str) -> Result<bool, NodeOptionsError>;
-    fn get_usize(&self, key: &str) -> Result<usize, NodeOptionsError>;
-    fn get_i32(&self, key: &str) -> Result<i32, NodeOptionsError>;
-    fn get_f32(&self, key: &str) -> Result<f32, NodeOptionsError>;
-}
-
-pub struct NodeClass {
-    pub name: &'static str,
-    pub constructor: fn(
-        common: NodeCommonData,
-        opt_provider: &dyn NodeOptionsProvider,
-        event_sender: Option<Arc<Mutex<dyn EventSender>>>,
-    ) -> Result<Box<dyn Node>, NodeOptionsError>,
-    pub num_inputs: usize,
-    pub num_outputs: usize,
-}
-
 pub enum Event {
     MessageTo(MessageTo),
     MessageFrom(MessageFrom),
@@ -140,11 +49,15 @@ pub trait EventSender: fmt::Debug + Send {
     fn dispatch(&mut self, e: Event);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Connection {
+    #[serde(skip_serializing)]
     pub source: NodePort,
+    #[serde(skip_serializing)]
     pub dest: NodePort,
+    #[serde(skip)]
     pub conversion: Option<MessageConverter>,
+    #[serde(skip)]
     pub dest_type: Option<MessageType>,
 }
 

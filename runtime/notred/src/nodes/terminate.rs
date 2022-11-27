@@ -1,52 +1,60 @@
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+use serde::{Deserialize, Serialize};
+
 use crate::common::*;
+use crate::node::*;
+use crate::MessageType;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TerminateNode {
-    common: NodeCommonData,
-    event_sender: Arc<Mutex<dyn EventSender>>,
-}
-
-fn make_node(
-    mut common: NodeCommonData,
-    _opt_provider: &dyn NodeOptionsProvider,
+    #[serde(flatten)]
+    common: NodeCommon,
+    #[serde(skip)]
     event_sender: Option<Arc<Mutex<dyn EventSender>>>,
-) -> Result<Box<dyn Node>, NodeOptionsError> {
-    common.input_types.push(None);
-    let event_sender = event_sender.expect("event_sender must be specified");
-    Ok(Box::new(TerminateNode {
-        common,
-        event_sender,
-    }))
 }
 
-pub static TERMINATE_NODE_CLASS: NodeClass = NodeClass {
-    name: "terminate",
-    constructor: make_node,
-    num_inputs: 1,
-    num_outputs: 0,
-};
-
+#[typetag::serde(name = "terminate")]
 impl Node for TerminateNode {
-    fn get_common(&self) -> &NodeCommonData {
+    fn common(&self) -> &NodeCommon {
         &self.common
     }
 
-    fn class(&self) -> &NodeClass {
-        &TERMINATE_NODE_CLASS
+    fn create(&mut self, event_sender: Option<Arc<Mutex<dyn EventSender>>>) {
+        self.event_sender = event_sender
     }
 
     fn run(&mut self, _msg: &Message, _input: usize) -> NodeFunctionResult {
         self.event_sender
+            .as_ref()
+            .unwrap()
             .lock()
             .unwrap()
             .dispatch(Event::Terminate());
-        NodeFunctionResult::NoResult()
+        Ok(None)
     }
+
+    fn destroy(&mut self) {}
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn num_inputs(&self) -> usize {
+        1
+    }
+
+    fn num_outputs(&self) -> usize {
+        0
+    }
+
+    fn input_type(&self, index: usize) -> Option<&MessageType> {
+        assert_eq!(index, 0);
+        None
+    }
+
+    fn output_type(&self, _index: usize) -> &MessageType {
+        unreachable!("node has no outputs");
     }
 }

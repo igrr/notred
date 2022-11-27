@@ -1,6 +1,7 @@
-use crate::conversion;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+
+use crate::conversion;
 
 /// MessageType encodes various types of messages.
 ///

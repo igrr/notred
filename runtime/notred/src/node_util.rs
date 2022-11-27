@@ -1,8 +1,8 @@
-use crate::common::*;
+use crate::node::Node;
 
 pub fn node_by_name<'a>(nodes: &'a Vec<Box<dyn Node>>, name: &str) -> Option<&'a Box<dyn Node>> {
     for n in nodes {
-        if n.get_name() == name {
+        if n.common().name == name {
             return Option::Some(n);
         }
     }
@@ -14,7 +14,7 @@ pub fn node_by_name_mut<'a>(
     name: &str,
 ) -> Option<&'a mut Box<dyn Node>> {
     for n in nodes {
-        if n.get_name() == name {
+        if n.common().name == name {
             return Option::Some(n);
         }
     }

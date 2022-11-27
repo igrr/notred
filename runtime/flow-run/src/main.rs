@@ -1,6 +1,5 @@
 use clap::arg;
 use env_logger;
-use json;
 use notred::*;
 use std::env;
 use std::fs;
@@ -15,13 +14,7 @@ fn main() {
 
     let flow_json = fs::read_to_string(flow_name).expect("Failed to read input flow file");
 
-    let j = json::parse(flow_json.as_str()).expect("Failed to parse flow as JSON");
-
-    let mut factory = notred::DefaultNodeFactory::default();
-    factory.node_classes = Some(&notred::NODE_CLASSES);
-
-    let mut flow = notred::FlowState::from_json(&j, &factory).expect("Failed to build the flow");
-    flow.create();
+    let mut flow = notred::FlowState::new(flow_json.as_str()).expect("Failed to build the flow");
 
     loop {
         let res = flow.run_once(Duration::from_millis(100));

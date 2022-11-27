@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-json = "0.12.4"
 quick-error = "2.0.1"
-counted-array = "0.1.2"
 log = "0.4.17"
+serde = "1.0.143"
+serde_json = "1.0.83"
+typetag = "0.2.3"

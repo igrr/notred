@@ -1,14 +1,13 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use json;
 use log::*;
 
 use crate::common::*;
 use crate::errors::Error;
 use crate::flow_checker::{check_flow, find_conversions};
-use crate::loader::JsonNodeLoader;
-use crate::node_factory::NodeFactory;
+use crate::loader;
+use crate::node::Node;
 use crate::node_util::{node_by_name, node_by_name_mut};
 
 #[derive(Debug)]
@@ -31,10 +30,7 @@ impl EventSender for FlowAsyncMessageDispatcher {
 }
 
 impl FlowState {
-    pub fn from_json(
-        json: &json::JsonValue,
-        node_factory: &dyn NodeFactory,
-    ) -> Result<FlowState, Error> {
+    pub fn new(text: &str) -> Result<FlowState, Error> {
         let (sender, receiver): (
             std::sync::mpsc::SyncSender<Event>,
             std::sync::mpsc::Receiver<Event>,
@@ -43,18 +39,15 @@ impl FlowState {
             message_queue_tx: sender,
         }));
 
-        let jl = JsonNodeLoader {};
-        let create_node = |class_name: &str,
-                           name: &str,
-                           jop: &dyn NodeOptionsProvider|
-         -> Option<Box<dyn Node>> {
-            node_factory.create_node(class_name, name, jop, Option::Some((&event_sender).clone()))
-        };
-
-        let nodes = jl.load_nodes(json, create_node)?;
-        let mut connections = jl.load_connections(&json)?;
+        let lfd = loader::LoadedFlowDescription::new(text)?;
+        let mut nodes = lfd.nodes;
+        for n in &mut nodes {
+            n.create(Some(event_sender.clone()));
+        }
+        let mut connections = lfd.connections;
         check_flow(&nodes, &connections)?;
         find_conversions(&nodes, &mut connections)?;
+
         Ok(FlowState {
             nodes,
             connections,
@@ -65,15 +58,15 @@ impl FlowState {
 
     fn handle_message_to(&mut self, mt: MessageTo) {
         let dst_node = node_by_name_mut(&mut self.nodes, mt.to.name.as_str()).unwrap();
-        if dst_node.should_log_inputs() {
-            if dst_node.class().num_inputs == 1 {
+        if dst_node.common().log_outputs {
+            if dst_node.num_inputs() == 1 {
                 info!("Input to {}: {}", mt.to.name, mt.message);
             } else {
                 info!("Input to {}[{}]: {}", mt.to.name, mt.to.index, mt.message);
             }
         }
         let node_res = dst_node.run(&mt.message, mt.to.index);
-        if let NodeFunctionResult::Success(msg) = node_res {
+        if let Ok(Some(msg)) = node_res {
             self.event_sender
                 .lock()
                 .unwrap()
@@ -89,8 +82,8 @@ impl FlowState {
 
     fn handle_message_from(&mut self, mf: MessageFrom) {
         if let Some(src_node) = node_by_name_mut(&mut self.nodes, mf.from.name.as_str()) {
-            if src_node.should_log_outputs() {
-                if src_node.class().num_outputs == 1 {
+            if src_node.common().log_outputs {
+                if src_node.num_outputs() == 1 {
                     info!("Output from {}: {}", mf.from.name, mf.message)
                 } else {
                     info!(
@@ -157,18 +150,11 @@ impl FlowState {
     pub fn get_node_by_name_mut(&mut self, name: &str) -> Option<&mut Box<dyn Node>> {
         return node_by_name_mut(&mut self.nodes, name);
     }
-
-    pub fn create(&mut self) {
-        for n in &mut self.nodes {
-            n.create();
-        }
-    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::node_factory;
-    use crate::nodes::CaptureNode;
+    use crate::nodes::capture::CaptureNode;
 
     use super::*;
 
@@ -177,24 +163,22 @@ mod test {
         let json_str = r#"
             {
                 "nodes": [
-                    {"class": "ticker", "name":"ticker1", "period":50, "limit":1},
+                    {"class": "ticker", "name":"ticker1", "period": 50, "limit":1},
                     {"class": "append", "name":"append1", "what_to_append":" test"},
                     {"class": "append", "name":"append2", "what_to_append":" test2"},
                     {"class": "capture", "name":"capture1"}
                 ],
                 "connections": [
-                    {"source": "ticker1", "dest": "append1"},
-                    {"source": "ticker1", "dest": "append2"},
-                    {"source": "append1", "dest": "append2"},
-                    {"source": "append2", "dest": "capture1"}
+                    {"source": {"name":"ticker1"}, "dest": {"name": "append1"}},
+                    {"source": {"name":"ticker1"}, "dest": {"name":"append2"}},
+                    {"source": {"name":"append1"}, "dest": {"name":"append2"}},
+                    {"source": {"name":"append2"}, "dest": {"name":"capture1"}}
                 ]
             }"#;
-        let j = json::parse(json_str).unwrap();
-        let factory = node_factory::DefaultNodeFactory::default();
-        let mut flow = FlowState::from_json(&j, &factory).unwrap();
+
+        let mut flow = FlowState::new(json_str).unwrap();
         assert_eq!(flow.connections.len(), 4);
         assert_eq!(flow.nodes.len(), 4);
-        flow.create();
 
         for _i in 1..10 {
             let res = flow.run_once(Duration::from_millis(100));

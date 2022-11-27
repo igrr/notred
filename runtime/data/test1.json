@@ -41,24 +41,24 @@
   ],
   "connections": [
     {
-      "source": "ticker1",
-      "dest": "append1"
+      "source": {"name":"ticker1"},
+      "dest": {"name":"append1"}
     },
     {
-      "source": "ticker1",
-      "dest": "append2"
+      "source": {"name":"ticker1"},
+      "dest": {"name":"append2"}
     },
     {
-      "source": "append1",
-      "dest": "append2"
+      "source": {"name":"append1"},
+      "dest": {"name":"append2"}
     },
     {
-      "source": "append2",
-      "dest": "capture1"
+      "source": {"name":"append2"},
+      "dest": {"name":"capture1"}
     },
     {
-      "source": "ticker2",
-      "dest": "terminate"
+      "source": {"name":"ticker2"},
+      "dest": {"name":"terminate"}
     }
   ]
 }

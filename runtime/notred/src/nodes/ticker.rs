@@ -1,58 +1,35 @@
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
 
 use crate::common::*;
+use crate::node::*;
 use crate::MessageType;
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct TickerNode {
-    common: NodeCommonData,
-    period: Duration,
+    #[serde(flatten)]
+    common: NodeCommon,
+    period: DurationMsec,
     limit: Option<usize>,
-    event_sender: Arc<Mutex<dyn EventSender>>,
+
+    #[serde(skip)]
     thread_handle: Option<JoinHandle<()>>,
+    #[serde(skip)]
     terminate_tx: Option<std::sync::mpsc::SyncSender<()>>,
 }
 
-fn make_ticker_node(
-    mut common: NodeCommonData,
-    opt_provider: &dyn NodeOptionsProvider,
-    event_sender: Option<Arc<Mutex<dyn EventSender>>>,
-) -> Result<Box<dyn Node>, NodeOptionsError> {
-    let period = Duration::from_millis(opt_provider.get_usize("period")? as u64);
-    let limit = opt_provider.get_usize("limit").ok();
-    let event_sender = event_sender.expect("event_sender must be specified");
-    common.output_types.push(MessageType::Int);
-    Ok(Box::new(TickerNode {
-        common,
-        period,
-        limit,
-        event_sender,
-        thread_handle: None,
-        terminate_tx: None,
-    }))
-}
-
-pub static TICKER_NODE_CLASS: NodeClass = NodeClass {
-    name: "ticker",
-    constructor: make_ticker_node,
-    num_inputs: 0,
-    num_outputs: 1,
-};
-
+#[typetag::serde(name = "ticker")]
 impl Node for TickerNode {
-    fn get_common(&self) -> &NodeCommonData {
+    fn common(&self) -> &NodeCommon {
         &self.common
     }
 
-    fn class(&self) -> &NodeClass {
-        &TICKER_NODE_CLASS
-    }
-
-    fn create(&mut self) {
-        let period = self.period;
-        let event_sender = self.event_sender.clone();
+    fn create(&mut self, event_sender: Option<Arc<Mutex<dyn EventSender>>>) {
+        let period = self.period.to_duration();
+        let event_sender = event_sender.unwrap().clone();
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         let name = self.common.name.clone();
         let mut limit = self.limit.clone();
@@ -83,12 +60,34 @@ impl Node for TickerNode {
     }
 
     fn run(&mut self, _msg: &Message, _index: usize) -> NodeFunctionResult {
-        panic!("node has no inputs, run shouldn't get called");
+        unreachable!("node has no inputs");
     }
 
     fn destroy(&mut self) {
         self.terminate_tx.take().unwrap().send(()).unwrap();
         self.thread_handle.take().unwrap().join().unwrap();
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn num_inputs(&self) -> usize {
+        0
+    }
+
+    fn num_outputs(&self) -> usize {
+        1
+    }
+
+    fn input_type(&self, _index: usize) -> Option<&MessageType> {
+        unreachable!("node has no inputs");
+    }
+
+    fn output_type(&self, index: usize) -> &MessageType {
+        assert_eq!(index, 0);
+        static OUTPUT_TYPE: MessageType = MessageType::Int;
+        &OUTPUT_TYPE
     }
 }
 
@@ -96,10 +95,7 @@ impl Node for TickerNode {
 mod test {
     use std::fmt::{Debug, Formatter};
     use std::thread;
-
-    use json;
-
-    use crate::json_options_provider::JsonNodeOptionsProvider;
+    use std::time::Duration;
 
     use super::*;
 
@@ -122,16 +118,17 @@ mod test {
     #[test]
     fn test_make_ticker_node() {
         let event_sender = Arc::new(Mutex::new(TestDispatcher { count: 0 }));
-        let mut n = make_ticker_node(
-            NodeCommonData::from_name("node1"),
-            &JsonNodeOptionsProvider {
-                data: &json::object! {"period": 500},
-            },
-            Some(event_sender.clone()),
+        let mut n: Box<dyn Node> = serde_json::from_str(
+            r#"{
+            "name": "node1",
+            "class": "ticker",
+            "period": 500
+        }"#,
         )
         .unwrap();
-        assert_eq!(n.get_name(), "node1");
-        n.create();
+
+        assert_eq!(n.common().name, "node1");
+        n.create(Some(event_sender.clone()));
         thread::sleep(Duration::from_millis(1200));
         n.destroy();
         assert_eq!(event_sender.lock().unwrap().count, 2);

@@ -1,5 +1,6 @@
 use crate::common::*;
 use crate::errors::Error;
+use crate::node::Node;
 use crate::node_util::node_by_name;
 use crate::{find_conversion, no_conversion};
 
@@ -11,7 +12,7 @@ pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> 
                 return Result::Err(Error::InvalidNodeName(c.source.name.clone()));
             }
             Some(node) => {
-                if c.source.index >= node.class().num_outputs {
+                if c.source.index >= node.num_outputs() {
                     return Result::Err(Error::InvalidPortIndex(
                         c.source.name.clone(),
                         c.source.index,
@@ -24,7 +25,7 @@ pub fn check_flow(nodes: &Vec<Box<dyn Node>>, connections: &Vec<Connection>) -> 
                 return Result::Err(Error::InvalidNodeName(c.dest.name.clone()));
             }
             Some(node) => {
-                if c.dest.index >= node.class().num_inputs {
+                if c.dest.index >= node.num_inputs() {
                     return Result::Err(Error::InvalidPortIndex(c.dest.name.clone(), c.dest.index));
                 }
             }
@@ -50,7 +51,7 @@ pub fn find_conversions(
             c.dest_type = Some(source_message_type.clone());
             continue;
         }
-        let dest_message_type = dest_node.input_type(dest_index).as_ref().unwrap();
+        let dest_message_type = dest_node.input_type(dest_index).unwrap();
 
         let res = find_conversion(&source_message_type, &dest_message_type);
         match res {

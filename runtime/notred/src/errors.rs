@@ -1,27 +1,13 @@
 use std::sync::mpsc::RecvTimeoutError;
 
-use json;
 use quick_error::quick_error;
-
-use crate::common::*;
+use serde_json;
 
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        Json(err: json::Error) {
+        JsonLoad(err: serde_json::Error) {
             from()
-        }
-        NodeOptions(err: NodeOptionsError) {
-            from()
-        }
-        ClassNotFound(classname: String) {
-            display("Class not found: {}", classname)
-        }
-        FieldMissing(field: &'static str) {
-            display("Field missing: {}", field)
-        }
-        ValueError(value: String) {
-            display("Invalid value: {}", value)
         }
         InvalidNodeName(name: String) {
             display("Invalid node name: {}", name)
