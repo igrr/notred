@@ -63,11 +63,6 @@ impl Node for TickerNode {
         unreachable!("node has no inputs");
     }
 
-    fn destroy(&mut self) {
-        self.terminate_tx.take().unwrap().send(()).unwrap();
-        self.thread_handle.take().unwrap().join().unwrap();
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -88,6 +83,16 @@ impl Node for TickerNode {
         assert_eq!(index, 0);
         static OUTPUT_TYPE: MessageType = MessageType::Int;
         &OUTPUT_TYPE
+    }
+}
+
+impl Drop for TickerNode {
+    fn drop(&mut self) {
+        /* The thread might have already terminated because it has reached the 'limit' */
+        if self.terminate_tx.take().unwrap().send(()).is_err() {
+            return;
+        }
+        if self.thread_handle.take().unwrap().join().is_err() {}
     }
 }
 
@@ -130,7 +135,6 @@ mod test {
         assert_eq!(n.common().name, "node1");
         n.create(Some(event_sender.clone()));
         thread::sleep(Duration::from_millis(1200));
-        n.destroy();
         assert_eq!(event_sender.lock().unwrap().count, 2);
     }
 }

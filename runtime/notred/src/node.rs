@@ -33,7 +33,6 @@ pub trait Node: Debug + Any {
     fn common(&self) -> &NodeCommon;
     fn create(&mut self, event_sender: Option<Arc<Mutex<dyn EventSender>>>);
     fn run(&mut self, msg: &Message, _input: usize) -> NodeFunctionResult;
-    fn destroy(&mut self);
     fn as_any(&self) -> &dyn Any;
     fn num_inputs(&self) -> usize;
     fn num_outputs(&self) -> usize;

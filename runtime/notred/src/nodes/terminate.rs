@@ -35,8 +35,6 @@ impl Node for TerminateNode {
         Ok(None)
     }
 
-    fn destroy(&mut self) {}
-
     fn as_any(&self) -> &dyn Any {
         self
     }

@@ -34,8 +34,6 @@ impl Node for AppendNode {
         }
     }
 
-    fn destroy(&mut self) {}
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -65,18 +63,18 @@ mod test {
 
     #[test]
     fn test_make_append_node() {
-        let node: Box<dyn Node> = serde_json::from_str(
+        let mut node: Box<dyn Node> = serde_json::from_str(
             r#"{"class":"append", "name":"node1", "what_to_append": " test"}"#,
         )
         .unwrap();
         assert_eq!(node.common().name, "node1");
-        // assert_eq!(
-        //     n.run(&MessageData::from_str("this is"), 0)
-        //         .as_message()
-        //         .unwrap()
-        //         .as_text()
-        //         .unwrap(),
-        //     "this is test"
-        // );
+        assert_eq!(
+            node.run(&MessageData::from_str("this is"), 0)
+                .expect("should not be an error")
+                .expect("should not be empty")
+                .as_text()
+                .expect("should be a string"),
+            "this is test"
+        );
     }
 }

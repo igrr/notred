@@ -29,10 +29,6 @@ impl Node for CaptureNode {
         Ok(None)
     }
 
-    fn destroy(&mut self) {
-        todo!()
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
